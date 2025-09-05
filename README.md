@@ -134,5 +134,3 @@ Este projeto é de propriedade da **FACIAP** e foi desenvolvido por **Nilton Sai
 **Organização:** FACIAP - Federação das Associações Comerciais e Industriais do Paraná
 
 ---
-
-*Sistema desenvolvido com 💙 para modernizar o acompanhamento legislativo empresarial no Paraná.*
