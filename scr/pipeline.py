@@ -7,11 +7,11 @@ from datetime import datetime
 from typing import Dict, List, Optional
 import pandas as pd
 
-from .database import DatabaseManager
-from .scrapers import get_all_scrapers
-from .content_extractor import ContentExtractor
-from .scoring import FACIAPScoring, load_dictionary
-from .config import Config
+from scr.database import DatabaseManager
+from scr.scrapers import get_all_scrapers
+from scr.content_extractor import ContentExtractor
+from scr.scoring import FACIAPScoring, load_dictionary
+from scr.config import Config
 
 class ClippingPipeline:
     """Pipeline principal do sistema de clipping"""
@@ -226,4 +226,5 @@ def executar_pipeline_completo(max_pages_por_fonte: int = 5,
                               limite_scoring: int = 100) -> Dict:
     """Executa pipeline completo - função compatível com código existente"""
     pipeline = ClippingPipeline()
+
     return pipeline.executar_completo(max_pages_por_fonte, limite_extracao, limite_scoring)
