@@ -1,0 +1,178 @@
+eixo_temat,palavra_chave,tipo,peso_risco,peso_interesse
+Legislação e Processo Legislativo,Lei,substantivo,2.0,2.0
+Legislação e Processo Legislativo,Projeto de Lei,expressão,2.5,2.5
+Legislação e Processo Legislativo,PL,substantivo,2.5,2.5
+Legislação e Processo Legislativo,Proposta de Emenda à Constituição,expressão,3.0,3.0
+Legislação e Processo Legislativo,PEC,substantivo,3.0,3.0
+Legislação e Processo Legislativo,Medida Provisória,expressão,2.8,2.8
+Legislação e Processo Legislativo,MP,substantivo,2.8,2.8
+Legislação e Processo Legislativo,Decreto,substantivo,2.0,2.0
+Legislação e Processo Legislativo,Decreto Legislativo,expressão,2.2,2.2
+Legislação e Processo Legislativo,PDL,substantivo,2.2,2.2
+Legislação e Processo Legislativo,Resolução,substantivo,1.8,1.8
+Legislação e Processo Legislativo,Portaria,substantivo,1.8,1.8
+Legislação e Processo Legislativo,Instrução Normativa,expressão,1.9,1.9
+Legislação e Processo Legislativo,Deliberação,substantivo,1.7,1.7
+Legislação e Processo Legislativo,Emenda,substantivo,2.3,2.3
+Legislação e Processo Legislativo,Parecer,substantivo,1.5,1.5
+Legislação e Processo Legislativo,Tramitação,substantivo,2.1,2.1
+Legislação e Processo Legislativo,Votação,substantivo,2.5,2.5
+Legislação e Processo Legislativo,Sanção,substantivo,2.2,2.2
+Legislação e Processo Legislativo,Veto,substantivo,2.8,2.8
+Legislação e Processo Legislativo,Promulgação,substantivo,2.0,2.0
+Legislação e Processo Legislativo,Publicação,substantivo,1.5,1.5
+Legislação e Processo Legislativo,Iniciativa popular,expressão,1.8,1.8
+Legislação e Processo Legislativo,Audiência Pública,expressão,2.0,2.0
+Legislação e Processo Legislativo,Comissão,substantivo,2.3,2.3
+Legislação e Processo Legislativo,Comissão de Constituição e Justiça,expressão,2.8,2.8
+Legislação e Processo Legislativo,CCJ,substantivo,2.8,2.8
+Legislação e Processo Legislativo,Regimento Interno,expressão,1.5,1.5
+Legislação e Processo Legislativo,Legislatura,substantivo,1.0,1.0
+Legislação e Processo Legislativo,Decoro Parlamentar,expressão,1.0,1.0
+Legislação e Processo Legislativo,Poder Executivo,expressão,2.5,2.5
+Legislação e Processo Legislativo,Poder Legislativo,expressão,2.5,2.5
+Legislação e Processo Legislativo,Poder Judiciário,expressão,2.5,2.5
+Legislação e Processo Legislativo,Supremo Tribunal Federal,expressão,3.0,3.0
+Legislação e Processo Legislativo,STF,substantivo,3.0,3.0
+Legislação e Processo Legislativo,Câmara dos Deputados,expressão,2.8,2.8
+Legislação e Processo Legislativo,Senado Federal,expressão,2.8,2.8
+Legislação e Processo Legislativo,Assembleia Legislativa,expressão,2.3,2.3
+Legislação e Processo Legislativo,Câmara Municipal,expressão,1.8,1.8
+Legislação e Processo Legislativo,Governo Federal,expressão,2.7,2.7
+Legislação e Processo Legislativo,Governo Estadual,expressão,2.2,2.2
+Legislação e Processo Legislativo,Governo Municipal,expressão,1.7,1.7
+Legislação e Processo Legislativo,ANTT,substantivo,2.0,2.0
+Legislação e Processo Legislativo,Legislação,substantivo,2.0,2.0
+Legislação e Processo Legislativo,Norma jurídica,expressão,1.8,1.8
+Legislação e Processo Legislativo,Regulamentação,substantivo,2.0,2.0
+Legislação e Processo Legislativo,Lei Complementar,expressão,2.5,2.5
+Legislação e Processo Legislativo,Código,substantivo,1.5,1.5
+Economia Finanças e Ambiente de Negócios,Imposto,substantivo,2.8,2.8
+Economia Finanças e Ambiente de Negócios,IOF,substantivo,3.0,3.0
+Economia Finanças e Ambiente de Negócios,Imposto sobre Operações Financeiras,expressão,3.0,3.0
+Economia Finanças e Ambiente de Negócios,Alíquota,substantivo,2.7,2.7
+Economia Finanças e Ambiente de Negócios,Aumento da alíquota,expressão,2.9,2.9
+Economia Finanças e Ambiente de Negócios,Arrecadação,substantivo,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Carga tributária,expressão,3.0,3.0
+Economia Finanças e Ambiente de Negócios,Carga tributária insustentável,expressão,3.0,3.0
+Economia Finanças e Ambiente de Negócios,Reforma Tributária,expressão,3.0,3.0
+Economia Finanças e Ambiente de Negócios,IVA,substantivo,2.8,2.8
+Economia Finanças e Ambiente de Negócios,CBS,substantivo,2.7,2.7
+Economia Finanças e Ambiente de Negócios,IBS,substantivo,2.7,2.7
+Economia Finanças e Ambiente de Negócios,Contribuição previdenciária,expressão,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Desoneração da Folha de Pagamento,expressão,2.9,2.9
+Economia Finanças e Ambiente de Negócios,Benefício fiscal,expressão,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Incentivo fiscal,expressão,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Sonegação,substantivo,1.0,1.0
+Economia Finanças e Ambiente de Negócios,Incerteza fiscal,expressão,2.8,2.8
+Economia Finanças e Ambiente de Negócios,Cenário fiscal pressionado,expressão,2.7,2.7
+Economia Finanças e Ambiente de Negócios,Equilíbrio fiscal,expressão,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Metas fiscais,expressão,2.6,2.6
+Economia Finanças e Ambiente de Negócios,Responsabilidade fiscal,expressão,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Contas públicas,expressão,2.4,2.4
+Economia Finanças e Ambiente de Negócios,Superávit primário,expressão,2.0,2.0
+Economia Finanças e Ambiente de Negócios,Ambiente de negócios,expressão,2.7,2.7
+Economia Finanças e Ambiente de Negócios,Instabilidade institucional,expressão,2.8,2.8
+Economia Finanças e Ambiente de Negócios,Estratégia fiscal do Executivo,expressão,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Aumento dos gastos,expressão,2.6,2.6
+Economia Finanças e Ambiente de Negócios,PEC da Transição,expressão,2.9,2.9
+Economia Finanças e Ambiente de Negócios,Orçamento,substantivo,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Insegurança quanto ao futuro das finanças públicas,expressão,2.7,2.7
+Economia Finanças e Ambiente de Negócios,Risco concreto,expressão,2.8,2.8
+Economia Finanças e Ambiente de Negócios,Alta carga tributária,expressão,2.9,2.9
+Economia Finanças e Ambiente de Negócios,Juros elevados,expressão,2.7,2.7
+Economia Finanças e Ambiente de Negócios,Burocracia excessiva,expressão,2.0,2.0
+Economia Finanças e Ambiente de Negócios,Desestimula investimentos,expressão,2.8,2.8
+Economia Finanças e Ambiente de Negócios,Freia a geração de empregos,expressão,2.9,2.9
+Economia Finanças e Ambiente de Negócios,Compromete o crescimento sustentável,expressão,2.9,2.9
+Economia Finanças e Ambiente de Negócios,Crescimento econômico,expressão,2.7,2.7
+Economia Finanças e Ambiente de Negócios,Setor produtivo,expressão,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Setor privado,expressão,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Investimento,substantivo,2.6,2.6
+Economia Finanças e Ambiente de Negócios,Custo de capital,expressão,2.4,2.4
+Economia Finanças e Ambiente de Negócios,Custo de operações financeiras,expressão,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Desenvolvimento econômico,expressão,2.6,2.6
+Economia Finanças e Ambiente de Negócios,Infraestrutura,substantivo,2.3,2.3
+Economia Finanças e Ambiente de Negócios,Pedágio,substantivo,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Concessão,substantivo,2.4,2.4
+Economia Finanças e Ambiente de Negócios,Obras,substantivo,2.0,2.0
+Economia Finanças e Ambiente de Negócios,Duplicações,substantivo,2.0,2.0
+Economia Finanças e Ambiente de Negócios,Recuperação de ativos,expressão,1.8,1.8
+Economia Finanças e Ambiente de Negócios,Transtornos no trânsito,expressão,1.5,1.5
+Economia Finanças e Ambiente de Negócios,Empresariado,substantivo,2.8,2.8
+Economia Finanças e Ambiente de Negócios,Comerciário,substantivo,2.5,2.5
+Economia Finanças e Ambiente de Negócios,Microempreendedor Individual,expressão,2.0,2.0
+Economia Finanças e Ambiente de Negócios,MEI,substantivo,2.0,2.0
+Economia Finanças e Ambiente de Negócios,Micro e Pequenas Empresas,expressão,2.2,2.2
+Economia Finanças e Ambiente de Negócios,MPE,substantivo,2.2,2.2
+Economia Finanças e Ambiente de Negócios,CNPJ,substantivo,1.5,1.5
+Economia Finanças e Ambiente de Negócios,Nota fiscal,expressão,1.5,1.5
+Economia Finanças e Ambiente de Negócios,Licitação,substantivo,1.8,1.8
+Economia Finanças e Ambiente de Negócios,Crédito,substantivo,1.7,1.7
+Economia Finanças e Ambiente de Negócios,Setor de serviços,expressão,2.0,2.0
+Relações de Trabalho,Leis Trabalhistas,expressão,2.8,2.8
+Relações de Trabalho,Consolidação das Leis do Trabalho,expressão,2.9,2.9
+Relações de Trabalho,CLT,substantivo,2.9,2.9
+Relações de Trabalho,Reforma Trabalhista,expressão,3.0,3.0
+Relações de Trabalho,Artigo 7º da Constituição Federal,expressão,2.7,2.7
+Relações de Trabalho,Vínculo empregatício,expressão,2.0,2.0
+Relações de Trabalho,Carteira assinada,expressão,2.0,2.0
+Relações de Trabalho,Carga horária,expressão,2.3,2.3
+Relações de Trabalho,Carga horária semanal,expressão,2.3,2.3
+Relações de Trabalho,Escala de trabalho,expressão,2.5,2.5
+Relações de Trabalho,Regime de trabalho flexível,expressão,2.6,2.6
+Relações de Trabalho,Salário-mínimo,expressão,2.5,2.5
+Relações de Trabalho,Vale-transporte,expressão,1.5,1.5
+Relações de Trabalho,Férias remuneradas,expressão,1.5,1.5
+Relações de Trabalho,Adicional noturno,expressão,1.5,1.5
+Relações de Trabalho,Trabalhador,substantivo,2.5,2.5
+Relações de Trabalho,Empregado,substantivo,2.5,2.5
+Relações de Trabalho,Empregador,substantivo,2.5,2.5
+Relações de Trabalho,Direitos trabalhistas,expressão,2.8,2.8
+Relações de Trabalho,Deveres do trabalhador,expressão,1.8,1.8
+Relações de Trabalho,Categorias profissionais,expressão,2.0,2.0
+Relações de Trabalho,Classificação Brasileira de Ocupações,expressão,1.5,1.5
+Relações de Trabalho,CBO,substantivo,1.5,1.5
+Relações de Trabalho,Sindicato,substantivo,2.5,2.5
+Relações de Trabalho,Federação sindical,expressão,2.3,2.3
+Relações de Trabalho,Confederação sindical,expressão,2.3,2.3
+Relações de Trabalho,Negociação coletiva,expressão,2.6,2.6
+Relações de Trabalho,Acordo coletivo,expressão,2.7,2.7
+Relações de Trabalho,Convenção coletiva,expressão,2.7,2.7
+Conflito Negociação e Posicionamento Político,Embate entre poderes,expressão,2.8,2.8
+Conflito Negociação e Posicionamento Político,Disputa política,expressão,2.7,2.7
+Conflito Negociação e Posicionamento Político,Manobra,substantivo,2.5,2.5
+Conflito Negociação e Posicionamento Político,Oposição,substantivo,2.6,2.6
+Conflito Negociação e Posicionamento Político,Reação,substantivo,2.0,2.0
+Conflito Negociação e Posicionamento Político,Contraponto,substantivo,1.8,1.8
+Conflito Negociação e Posicionamento Político,Articulação,substantivo,2.5,2.5
+Conflito Negociação e Posicionamento Político,Lobby,substantivo,2.6,2.6
+Conflito Negociação e Posicionamento Político,Negociação,substantivo,2.4,2.4
+Conflito Negociação e Posicionamento Político,Protesto,substantivo,1.5,1.5
+Conflito Negociação e Posicionamento Político,Apoio,substantivo,1.8,1.8
+Conflito Negociação e Posicionamento Político,Resistência,substantivo,2.2,2.2
+Conflito Negociação e Posicionamento Político,Revogação,substantivo,2.8,2.8
+Conflito Negociação e Posicionamento Político,Derrubada,substantivo,2.9,2.9
+Conflito Negociação e Posicionamento Político,Ação Declaratória de Constitucionalidade,expressão,2.9,2.9
+Conflito Negociação e Posicionamento Político,ADC,substantivo,2.9,2.9
+Conflito Negociação e Posicionamento Político,Violação,substantivo,2.0,2.0
+Conflito Negociação e Posicionamento Político,Interferência,substantivo,2.0,2.0
+Conflito Negociação e Posicionamento Político,Prerrogativa,substantivo,1.8,1.8
+Conflito Negociação e Posicionamento Político,Separação de Poderes,expressão,2.9,2.9
+Conflito Negociação e Posicionamento Político,Pacto federativo,expressão,2.5,2.5
+Conflito Negociação e Posicionamento Político,Harmonia entre os Poderes,expressão,2.5,2.5
+Conflito Negociação e Posicionamento Político,Projeto de país de longo prazo,expressão,2.0,2.0
+Conflito Negociação e Posicionamento Político,Eficiência,substantivo,2.0,2.0
+Conflito Negociação e Posicionamento Político,Transparência,substantivo,2.0,2.0
+Conflito Negociação e Posicionamento Político,Previsibilidade,substantivo,2.2,2.2
+Conflito Negociação e Posicionamento Político,Revisão de privilégios,expressão,2.0,2.0
+Conflito Negociação e Posicionamento Político,Controle de gastos,expressão,2.5,2.5
+Conflito Negociação e Posicionamento Político,Emendas parlamentares,expressão,2.3,2.3
+Conflito Negociação e Posicionamento Político,Tamanho da máquina pública,expressão,2.0,2.0
+Conflito Negociação e Posicionamento Político,Mecanismos de financiamento político,expressão,1.8,1.8
+Conflito Negociação e Posicionamento Político,G7 Paraná,expressão,2.5,2.5
+Conflito Negociação e Posicionamento Político,Frente Parlamentar,expressão,2.4,2.4
+Conflito Negociação e Posicionamento Político,Associações empresariais,expressão,2.6,2.6
+Conflito Negociação e Posicionamento Político,Confederações empresariais,expressão,2.7,2.7
+Conflito Negociação e Posicionamento Político,OAB,substantivo,2.0,2.0
+Conflito Negociação e Posicionamento Político,TRT,substantivo,2.0,2.0

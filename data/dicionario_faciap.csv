@@ -1,0 +1,142 @@
+﻿eixo_temat;palavra_chave;tipo;peso_risco;peso_interesse
+Legislação e Processo Legislativo;Lei;substantivo;10;10
+Legislação e Processo Legislativo;Projeto de Lei;expressão;12,5;12,5
+Legislação e Processo Legislativo;PL;substantivo;12,5;12,5
+Legislação e Processo Legislativo;Proposta de Emenda à Constituição;expressão;15;15
+Legislação e Processo Legislativo;PEC;substantivo;15;15
+Legislação e Processo Legislativo;Medida Provisória;expressão;14;14
+Legislação e Processo Legislativo;MP;substantivo;14;14
+Legislação e Processo Legislativo;Decreto;substantivo;10;10
+Legislação e Processo Legislativo;Decreto Legislativo;expressão;11;11
+Legislação e Processo Legislativo;PDL;substantivo;11;11
+Legislação e Processo Legislativo;Resolução;substantivo;9;9
+Legislação e Processo Legislativo;Portaria;substantivo;9;9
+Economia Finanças e Ambiente de Negócios;Imposto;substantivo;28;28
+Economia Finanças e Ambiente de Negócios;IOF;substantivo;30;30
+Economia Finanças e Ambiente de Negócios;Imposto sobre Operações Financeiras;expressão;30;30
+Economia Finanças e Ambiente de Negócios;Alíquota;substantivo;27;27
+Economia Finanças e Ambiente de Negócios;Aumento da alíquota;expressão;29;29
+Economia Finanças e Ambiente de Negócios;Arrecadação;substantivo;25;25
+Economia Finanças e Ambiente de Negócios;Carga tributária;expressão;30;30
+Economia Finanças e Ambiente de Negócios;Carga tributária insustentável;expressão;30;30
+Economia Finanças e Ambiente de Negócios;Reforma Tributária;expressão;30;30
+Economia Finanças e Ambiente de Negócios;IVA;substantivo;28;28
+Economia Finanças e Ambiente de Negócios;CBS;substantivo;27;27
+Economia Finanças e Ambiente de Negócios;IBS;substantivo;27;27
+Economia Finanças e Ambiente de Negócios;Contribuição previdenciária;expressão;25;25
+Economia Finanças e Ambiente de Negócios;Desoneração da Folha de Pagamento;expressão;29;29
+Economia Finanças e Ambiente de Negócios;Benefício fiscal;expressão;25;25
+Economia Finanças e Ambiente de Negócios;Incentivo fiscal;expressão;25;25
+Economia Finanças e Ambiente de Negócios;Sonegação;substantivo;20;20
+Economia Finanças e Ambiente de Negócios;Incerteza fiscal;expressão;28;28
+Economia Finanças e Ambiente de Negócios;Cenário fiscal pressionado;expressão;27;27
+Economia Finanças e Ambiente de Negócios;Equilíbrio fiscal;expressão;25;25
+Economia Finanças e Ambiente de Negócios;Metas fiscais;expressão;26;26
+Economia Finanças e Ambiente de Negócios;Responsabilidade fiscal;expressão;25;25
+Economia Finanças e Ambiente de Negócios;Contas públicas;expressão;24;24
+Economia Finanças e Ambiente de Negócios;Superávit primário;expressão;20;20
+Economia Finanças e Ambiente de Negócios;Ambiente de negócios;expressão;27;27
+Economia Finanças e Ambiente de Negócios;Instabilidade institucional;expressão;28;28
+Economia Finanças e Ambiente de Negócios;Estratégia fiscal do Executivo;expressão;25;25
+Economia Finanças e Ambiente de Negócios;Aumento dos gastos;expressão;26;26
+Economia Finanças e Ambiente de Negócios;PEC da Transição;expressão;29;29
+Economia Finanças e Ambiente de Negócios;Orçamento;substantivo;25;25
+Economia Finanças e Ambiente de Negócios;Insegurança quanto ao futuro das finanças públicas;expressão;27;27
+Economia Finanças e Ambiente de Negócios;Risco concreto;expressão;28;28
+Economia Finanças e Ambiente de Negócios;Alta carga tributária;expressão;29;29
+Economia Finanças e Ambiente de Negócios;Juros elevados;expressão;27;27
+Economia Finanças e Ambiente de Negócios;Burocracia excessiva;expressão;20;20
+Economia Finanças e Ambiente de Negócios;Desestimula investimentos;expressão;28;28
+Economia Finanças e Ambiente de Negócios;Empregos;expressão;29;29
+Economia Finanças e Ambiente de Negócios;Compromete o crescimento sustentável;expressão;29;29
+Economia Finanças e Ambiente de Negócios;Crescimento econômico;expressão;27;27
+Economia Finanças e Ambiente de Negócios;Setor produtivo;expressão;25;25
+Economia Finanças e Ambiente de Negócios;Setor privado;expressão;25;25
+Economia Finanças e Ambiente de Negócios;Investimento;substantivo;26;26
+Economia Finanças e Ambiente de Negócios;Custo de capital;expressão;24;24
+Economia Finanças e Ambiente de Negócios;Custo de operações financeiras;expressão;25;25
+Economia Finanças e Ambiente de Negócios;Desenvolvimento econômico;expressão;26;26
+Economia Finanças e Ambiente de Negócios;Infraestrutura;substantivo;23;23
+Economia Finanças e Ambiente de Negócios;Pedágio;substantivo;25;25
+Economia Finanças e Ambiente de Negócios;Concessão;substantivo;24;24
+Economia Finanças e Ambiente de Negócios;Obras;substantivo;20;20
+Economia Finanças e Ambiente de Negócios;Duplicações;substantivo;20;20
+Economia Finanças e Ambiente de Negócios;Recuperação de ativos;expressão;18;18
+Economia Finanças e Ambiente de Negócios;Transtornos no trânsito;expressão;15;15
+Economia Finanças e Ambiente de Negócios;Empresariado;substantivo;28;28
+Economia Finanças e Ambiente de Negócios;Comerciário;substantivo;25;25
+Economia Finanças e Ambiente de Negócios;Microempreendedor Individual;expressão;20;20
+Economia Finanças e Ambiente de Negócios;MEI;substantivo;20;20
+Economia Finanças e Ambiente de Negócios;Micro e Pequenas Empresas;expressão;22;22
+Economia Finanças e Ambiente de Negócios;MPE;substantivo;22;22
+Economia Finanças e Ambiente de Negócios;CNPJ;substantivo;25;25
+Economia Finanças e Ambiente de Negócios;Nota fiscal;expressão;25;25
+Economia Finanças e Ambiente de Negócios;Licitação;substantivo;20;20
+Economia Finanças e Ambiente de Negócios;Crédito;substantivo;20;20
+Economia Finanças e Ambiente de Negócios;Setor de serviços;expressão;20;20
+Relações de Trabalho;Leis Trabalhistas;expressão;28;28
+Relações de Trabalho;Consolidação das Leis do Trabalho;expressão;29;29
+Relações de Trabalho;CLT;substantivo;29;29
+Relações de Trabalho;Reforma Trabalhista;expressão;30;30
+Relações de Trabalho;Artigo 7º da Constituição Federal;expressão;27;27
+Relações de Trabalho;Vínculo empregatício;expressão;20;20
+Relações de Trabalho;Carteira assinada;expressão;20;20
+Relações de Trabalho;Carga horária;expressão;23;23
+Relações de Trabalho;Carga horária semanal;expressão;23;23
+Relações de Trabalho;Escala de trabalho;expressão;25;25
+Relações de Trabalho;Regime de trabalho flexível;expressão;26;26
+Relações de Trabalho;Salário-mínimo;expressão;25;25
+Relações de Trabalho;Vale-transporte;expressão;25;25
+Relações de Trabalho;Férias remuneradas;expressão;25;25
+Relações de Trabalho;Adicional noturno;expressão;25;25
+Relações de Trabalho;Trabalhador;substantivo;25;25
+Relações de Trabalho;Empregado;substantivo;25;25
+Relações de Trabalho;Empregador;substantivo;25;25
+Relações de Trabalho;Direitos trabalhistas;expressão;28;28
+Relações de Trabalho;Deveres do trabalhador;expressão;18;18
+Relações de Trabalho;Categorias profissionais;expressão;20;20
+Relações de Trabalho;Classificação Brasileira de Ocupações;expressão;15;15
+Relações de Trabalho;CBO;substantivo;15;15
+Relações de Trabalho;Sindicato;substantivo;25;25
+Relações de Trabalho;Federação sindical;expressão;23;23
+Relações de Trabalho;Confederação sindical;expressão;23;23
+Relações de Trabalho;Negociação coletiva;expressão;26;26
+Relações de Trabalho;Acordo coletivo;expressão;27;27
+Relações de Trabalho;Convenção coletiva;expressão;27;27
+Conflito Negociação e Posicionamento Político;Embate entre poderes;expressão;14;14
+Conflito Negociação e Posicionamento Político;Disputa política;expressão;13,5;13,5
+Conflito Negociação e Posicionamento Político;Manobra;substantivo;12,5;12,5
+Conflito Negociação e Posicionamento Político;Oposição;substantivo;13;13
+Conflito Negociação e Posicionamento Político;Reação;substantivo;10;10
+Conflito Negociação e Posicionamento Político;Contraponto;substantivo;9;9
+Conflito Negociação e Posicionamento Político;Articulação;substantivo;12,5;12,5
+Conflito Negociação e Posicionamento Político;Lobby;substantivo;13;13
+Conflito Negociação e Posicionamento Político;Negociação;substantivo;12;12
+Conflito Negociação e Posicionamento Político;Protesto;substantivo;7,5;7,5
+Conflito Negociação e Posicionamento Político;Apoio;substantivo;9;9
+Conflito Negociação e Posicionamento Político;Resistência;substantivo;11;11
+Conflito Negociação e Posicionamento Político;Revogação;substantivo;14;14
+Conflito Negociação e Posicionamento Político;Derrubada;substantivo;14,5;14,5
+Conflito Negociação e Posicionamento Político;Ação Declaratória de Constitucionalidade;expressão;14,5;14,5
+Conflito Negociação e Posicionamento Político;ADC;substantivo;14,5;14,5
+Conflito Negociação e Posicionamento Político;Violação;substantivo;10;10
+Conflito Negociação e Posicionamento Político;Interferência;substantivo;10;10
+Conflito Negociação e Posicionamento Político;Prerrogativa;substantivo;9;9
+Conflito Negociação e Posicionamento Político;Separação de Poderes;expressão;14,5;14,5
+Conflito Negociação e Posicionamento Político;Pacto federativo;expressão;12,5;12,5
+Conflito Negociação e Posicionamento Político;Harmonia entre os Poderes;expressão;12,5;12,5
+Conflito Negociação e Posicionamento Político;Projeto de país de longo prazo;expressão;10;10
+Conflito Negociação e Posicionamento Político;Eficiência;substantivo;10;10
+Conflito Negociação e Posicionamento Político;Transparência;substantivo;10;10
+Conflito Negociação e Posicionamento Político;Previsibilidade;substantivo;11;11
+Conflito Negociação e Posicionamento Político;Revisão de privilégios;expressão;10;10
+Conflito Negociação e Posicionamento Político;Controle de gastos;expressão;12,5;12,5
+Conflito Negociação e Posicionamento Político;Emendas parlamentares;expressão;11,5;11,5
+Conflito Negociação e Posicionamento Político;Tamanho da máquina pública;expressão;10;10
+Conflito Negociação e Posicionamento Político;Mecanismos de financiamento político;expressão;9;9
+Conflito Negociação e Posicionamento Político;G7 Paraná;expressão;12,5;12,5
+Conflito Negociação e Posicionamento Político;Frente Parlamentar;expressão;12;12
+Conflito Negociação e Posicionamento Político;Associações empresariais;expressão;13;13
+Conflito Negociação e Posicionamento Político;Confederações empresariais;expressão;13,5;13,5
+Conflito Negociação e Posicionamento Político;OAB;substantivo;10;10
+Conflito Negociação e Posicionamento Político;TRT;substantivo;10;10
