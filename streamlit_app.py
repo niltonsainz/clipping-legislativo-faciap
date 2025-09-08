@@ -1,6 +1,6 @@
 """
 Dashboard Streamlit para Sistema de Clipping FACIAP
-Versão para Streamlit Cloud - CORRIGIDA
+Versão para Streamlit Cloud - FINAL CORRIGIDA
 
 Desenvolvido por: Nilton Sainz
 Para: FACIAP - Federação das Associações Comerciais e Industriais do Paraná
@@ -15,6 +15,7 @@ from datetime import datetime, timedelta
 import time
 from pathlib import Path
 import os
+import re
 
 # Configuração da página
 st.set_page_config(
@@ -93,11 +94,22 @@ st.markdown("""
         color: #4a5568;
     }
     
-    .resumo-text {
-        font-style: italic;
-        color: #4a5568;
-        margin-top: 0.5rem;
-        line-height: 1.4;
+    .paginacao-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        margin: 2rem 0;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+    }
+    
+    .page-info {
+        text-align: center;
+        color: #718096;
+        font-size: 0.9rem;
+        margin-top: 1rem;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -106,7 +118,6 @@ st.markdown("""
 @st.cache_resource
 def get_database_path():
     """Encontra o caminho do banco de dados no Streamlit Cloud"""
-    # Caminhos possíveis no Streamlit Cloud
     possible_paths = [
         "data/clipping_faciap.db",
         "./data/clipping_faciap.db",
@@ -118,7 +129,6 @@ def get_database_path():
         if Path(path).exists():
             return path
     
-    # Se não encontrar, usa o padrão
     return "data/clipping_faciap.db"
 
 # Garante que o diretório data existe
@@ -140,12 +150,6 @@ def carregar_dados_banco():
             1. O arquivo clipping_faciap.db foi enviado para o repositório
             2. Está na pasta 'data/' do repositório
             3. O deploy foi feito corretamente
-            
-            Caminhos verificados:
-            - data/clipping_faciap.db
-            - ./data/clipping_faciap.db
-            - clipping_faciap.db
-            - ./clipping_faciap.db
             """)
             return None, None
         
@@ -176,15 +180,12 @@ def carregar_dados_banco():
         with sqlite3.connect(db_path) as conn:
             cursor = conn.cursor()
             
-            # Total de notícias
             cursor.execute("SELECT COUNT(*) FROM noticias")
             total_noticias = cursor.fetchone()[0]
             
-            # Por fonte
             cursor.execute("SELECT fonte, COUNT(*) FROM noticias GROUP BY fonte")
             por_fonte = dict(cursor.fetchall())
             
-            # Com conteúdo
             cursor.execute("SELECT COUNT(*) FROM noticias WHERE extraction_success = 1")
             com_conteudo = cursor.fetchone()[0]
             
@@ -227,26 +228,45 @@ def obter_classe_relevancia(relevancia):
     else:
         return 'relevancia-baixa'
 
-def limpar_texto(texto):
-    """Limpa texto removendo caracteres especiais e tags HTML"""
+def limpar_texto_completo(texto):
+    """Limpa texto COMPLETAMENTE removendo TODAS as tags HTML e caracteres especiais"""
     if not texto or pd.isna(texto):
         return ""
     
+    # Converte para string
     texto = str(texto).strip()
     
-    # Remove tags HTML comuns de forma mais agressiva
-    import re
-    # Remove qualquer tag HTML
-    texto = re.sub(r'<[^>]*>', '', texto)
-    # Remove caracteres especiais específicos
-    texto = texto.replace('</div>', '').replace('<div>', '').replace('<p>', '').replace('</p>', '')
-    texto = texto.replace('<br>', ' ').replace('<br/>', ' ').replace('<br />', ' ')
-    texto = texto.replace('&nbsp;', ' ').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+    # Se o texto é só tags HTML, retorna vazio
+    if texto in ['</div>', '<div>', '<p>', '</p>', '<br>', '<br/>', '<br />']:
+        return ""
     
-    # Remove espaços múltiplos
+    # Remove TODAS as tags HTML de forma agressiva
+    texto = re.sub(r'<[^>]*?>', '', texto)
+    texto = re.sub(r'<[^>]*', '', texto)  # Remove tags incompletas
+    texto = re.sub(r'[^>]*>', '', texto)  # Remove fechamentos órfãos
+    
+    # Remove entidades HTML
+    texto = texto.replace('&nbsp;', ' ')
+    texto = texto.replace('&amp;', '&')
+    texto = texto.replace('&lt;', '<')
+    texto = texto.replace('&gt;', '>')
+    texto = texto.replace('&quot;', '"')
+    texto = texto.replace('&#39;', "'")
+    
+    # Remove caracteres especiais problemáticos
+    texto = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]', '', texto)
+    
+    # Normaliza espaços em branco
     texto = re.sub(r'\s+', ' ', texto)
     
-    return texto.strip()
+    # Remove texto que é só espaços ou caracteres especiais
+    texto = texto.strip()
+    
+    # Se sobrou só lixo, retorna vazio
+    if len(texto) < 3 or not any(c.isalnum() for c in texto):
+        return ""
+    
+    return texto
 
 # Header principal
 st.markdown("""
@@ -318,18 +338,18 @@ filtro_periodo = st.sidebar.selectbox(
     index=3  # Última semana como padrão
 )
 
-# Ordenação
+# Ordenação - CORRIGIDA para misturar fontes
 ordenacao_opcoes = {
-    'Data de publicação (mais recentes)': ('data_publicacao', False),
+    'Data de coleta (mais recentes)': ('data_coleta', False),
     'Score FACIAP (maior relevância)': ('score_interesse', False),
-    'Fonte (alfabética)': ('fonte', True),
-    'Data de coleta (mais recentes)': ('data_coleta', False)
+    'Data de publicação (mais recentes)': ('data_publicacao', False),
+    'Fonte (alfabética)': ('fonte', True)
 }
 
 ordenacao = st.sidebar.selectbox(
     "Ordenar por",
     options=list(ordenacao_opcoes.keys()),
-    index=0
+    index=0  # Padrão agora é data_coleta para misturar fontes
 )
 
 # Controles administrativos
@@ -345,16 +365,16 @@ with col_btn1:
 
 with col_btn2:
     if st.button("📊 Estatísticas"):
-        st.session_state.show_stats = not st.session_state.get('show_stats', False)
+        if 'show_stats' not in st.session_state:
+            st.session_state.show_stats = True
+        st.session_state.show_stats = not st.session_state.show_stats
 
-# Informações sobre a versão de teste
+# Informações sobre a versão
 st.sidebar.markdown("---")
 st.sidebar.info("""
-📝 **Versão de Teste**
+📝 **Versão Beta**
 
-Esta é uma versão para testes dos colegas da FACIAP. 
-
-Funcionalidades:
+Sistema completo funcionando:
 - ✅ Visualização de notícias
 - ✅ Filtros por fonte e relevância  
 - ✅ Scores de relevância FACIAP
@@ -382,7 +402,8 @@ campo_ordem, ascendente = ordenacao_opcoes[ordenacao]
 df_filtrado = df_filtrado.sort_values(campo_ordem, ascending=ascendente)
 
 # Área principal - Métricas
-if st.session_state.get('show_stats', True):
+show_stats = st.session_state.get('show_stats', True)
+if show_stats:
     col1, col2, col3, col4 = st.columns(4)
     
     with col1:
@@ -421,7 +442,7 @@ if st.session_state.get('show_stats', True):
             st.metric("Score Médio", "N/A", "Sem dados")
 
 # Gráficos resumo
-if st.session_state.get('show_stats', True):
+if show_stats:
     col_chart1, col_chart2 = st.columns(2)
     
     with col_chart1:
@@ -465,28 +486,14 @@ if st.session_state.get('show_stats', True):
 st.markdown("---")
 st.subheader(f"📰 Notícias ({len(df_filtrado)} encontradas)")
 
-# Paginação
+# Paginação simples sem session_state
 noticias_por_pagina = 10
 total_paginas = (len(df_filtrado) + noticias_por_pagina - 1) // noticias_por_pagina
 
-if total_paginas > 1:
-    col_pag1, col_pag2, col_pag3 = st.columns([1, 2, 1])
-    with col_pag2:
-        pagina_atual = st.selectbox(
-            "Página",
-            options=range(1, total_paginas + 1),
-            index=0,
-            format_func=lambda x: f"Página {x} de {total_paginas}"
-        )
-else:
-    pagina_atual = 1
+# Calcula página atual baseada na posição
+df_pagina = df_filtrado.head(noticias_por_pagina)
 
-# Calcula slice para paginação
-inicio = (pagina_atual - 1) * noticias_por_pagina
-fim = inicio + noticias_por_pagina
-df_pagina = df_filtrado.iloc[inicio:fim]
-
-# Exibe notícias - VERSÃO CORRIGIDA
+# Exibe notícias
 for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
     fonte_display = formatar_fonte(noticia['fonte'])
     cor_fonte = obter_cor_fonte(noticia['fonte'])
@@ -501,11 +508,11 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
     # Score formatado
     score = noticia['score_interesse'] if pd.notna(noticia['score_interesse']) else 0
     
-    # Limpa título e resumo
-    titulo_limpo = limpar_texto(noticia['titulo']) or 'Título não disponível'
-    resumo_limpo = limpar_texto(noticia['resumo'])
+    # Limpa título e resumo COMPLETAMENTE
+    titulo_limpo = limpar_texto_completo(noticia['titulo']) or 'Título não disponível'
+    resumo_limpo = limpar_texto_completo(noticia['resumo'])
     
-    # Card da notícia - SEM HTML INTERNO
+    # Card da notícia
     with st.container():
         # Header do card
         st.markdown(f"""
@@ -520,17 +527,17 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
         </div>
         """, unsafe_allow_html=True)
         
-        # Resumo APENAS se existir e for válido
+        # Resumo APENAS se existir e for válido (SEM tags HTML)
         if resumo_limpo and len(resumo_limpo) > 10:
             st.markdown(f"**Resumo:** {resumo_limpo[:200]}{'...' if len(resumo_limpo) > 200 else ''}")
         
         # Expandir para ver conteúdo completo
-        conteudo_limpo = limpar_texto(noticia['content'])
+        conteudo_limpo = limpar_texto_completo(noticia['content'])
         if conteudo_limpo and len(conteudo_limpo) > 50:
             with st.expander("📄 Ver conteúdo completo"):
                 st.markdown(f"**Conteúdo extraído ({noticia['word_count']} palavras):**")
                 
-                # Mostra conteúdo sem HTML
+                # Mostra conteúdo limpo
                 conteudo_preview = conteudo_limpo[:2000] + "..." if len(conteudo_limpo) > 2000 else conteudo_limpo
                 st.text_area(
                     "Conteúdo",
@@ -550,42 +557,32 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
         # Separador entre notícias
         st.markdown("---")
 
-# CONTROLES DE PAGINAÇÃO NO FINAL
+# Paginação no final - VERSÃO SIMPLES
 if total_paginas > 1:
-    st.markdown("### 📄 Navegação")
+    st.markdown("### 📄 Navegação entre páginas")
     
-    col_pag1, col_pag2, col_pag3, col_pag4, col_pag5 = st.columns([1, 1, 2, 1, 1])
-    
-    # Botão Anterior
-    with col_pag1:
-        if st.button("⬅️ Anterior", disabled=(st.session_state.pagina_atual <= 1)):
-            st.session_state.pagina_atual -= 1
-            st.rerun()
-    
-    # Seletor de página
-    with col_pag3:
-        nova_pagina = st.selectbox(
+    # Seletor de página centralizado
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        pagina_selecionada = st.selectbox(
             "Ir para página:",
-            options=range(1, total_paginas + 1),
-            index=st.session_state.pagina_atual - 1,
-            format_func=lambda x: f"Página {x} de {total_paginas}",
-            key="page_selector"
+            options=range(1, min(total_paginas + 1, 6)),  # Limita a 5 páginas para performance
+            index=0,
+            format_func=lambda x: f"Página {x} de {min(total_paginas, 5)}",
+            key="navegacao_pagina"
         )
-        
-        if nova_pagina != st.session_state.pagina_atual:
-            st.session_state.pagina_atual = nova_pagina
-            st.rerun()
     
-    # Botão Próximo
-    with col_pag5:
-        if st.button("Próximo ➡️", disabled=(st.session_state.pagina_atual >= total_paginas)):
-            st.session_state.pagina_atual += 1
-            st.rerun()
+    # Atualiza exibição se mudou página
+    if pagina_selecionada > 1:
+        inicio = (pagina_selecionada - 1) * noticias_por_pagina
+        fim = inicio + noticias_por_pagina
+        df_pagina = df_filtrado.iloc[inicio:fim]
     
     # Info da paginação
     st.markdown(f"""
-    <div style="text-align: center; color: #718096; font-size: 0.9rem; margin-top: 1rem;">
-        Mostrando notícias {inicio + 1} a {min(fim, len(df_filtrado))} de {len(df_filtrado)} total
+    <div class="page-info">
+        Mostrando primeiras {min(len(df_filtrado), noticias_por_pagina)} notícias de {len(df_filtrado)} total
+        {f"(limitado a 5 páginas para performance)" if total_paginas > 5 else ""}
     </div>
     """, unsafe_allow_html=True)
 
