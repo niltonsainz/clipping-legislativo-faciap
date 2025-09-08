@@ -496,9 +496,9 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
     # Score formatado
     score = noticia['score_interesse'] if pd.notna(noticia['score_interesse']) else 0
     
-    # Limpa título e resumo usando a função corrigida
-    titulo_limpo = limpar_texto_final(noticia['titulo']) or 'Título não disponível'
-    resumo_limpo = limpar_texto_final(noticia['resumo'])
+    # Limpa título e resumo usando a função ULTRA AGRESSIVA
+    titulo_limpo = limpar_texto_ultra_agressivo(noticia['titulo']) or 'Título não disponível'
+    resumo_limpo = limpar_texto_ultra_agressivo(noticia['resumo'])
     
     # Card da notícia
     with st.container():
@@ -515,18 +515,18 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
         </div>
         """, unsafe_allow_html=True)
         
-        # Resumo APENAS se existir e for válido (sem HTML)
-        if resumo_limpo and len(resumo_limpo) > 10:
-            st.markdown(f"**Resumo:** {resumo_limpo[:200]}{'...' if len(resumo_limpo) > 200 else ''}")
+        # Resumo - VALIDAÇÃO ULTRA RIGOROSA
+        if resumo_limpo and len(resumo_limpo) >= 15 and resumo_limpo not in ['</div>', '<div>', 'Título não disponível']:
+            st.markdown(f"**Resumo:** {resumo_limpo[:250]}{'...' if len(resumo_limpo) > 250 else ''}")
         
         # Expandir para ver conteúdo completo
-        conteudo_limpo = limpar_texto_final(noticia['content'])
-        if conteudo_limpo and len(conteudo_limpo) > 50:
+        conteudo_limpo = limpar_texto_ultra_agressivo(noticia['content'])
+        if conteudo_limpo and len(conteudo_limpo) >= 100:
             with st.expander("📄 Ver conteúdo completo"):
                 st.markdown(f"**Conteúdo extraído ({noticia['word_count']} palavras):**")
                 
                 # Mostra conteúdo limpo
-                conteudo_preview = conteudo_limpo[:2000] + "..." if len(conteudo_limpo) > 2000 else conteudo_limpo
+                conteudo_preview = conteudo_limpo[:2500] + "..." if len(conteudo_limpo) > 2500 else conteudo_limpo
                 st.text_area(
                     "Conteúdo",
                     value=conteudo_preview,
