@@ -175,9 +175,20 @@ jobs:
         if [ -f "data/clipping_faciap.db" ]; then
           db_size=$(du -h data/clipping_faciap.db | cut -f1)
           echo "- **Tamanho do banco:** $db_size" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Banco de dados:** Não encontrado" >> $GITHUB_STEP_SUMMARY
         fi
         
         echo "" >> $GITHUB_STEP_SUMMARY
         echo "### 🔗 Links Úteis" >> $GITHUB_STEP_SUMMARY
         echo "- [Dashboard Streamlit](https://clipping-legislativo-faciap.streamlit.app)" >> $GITHUB_STEP_SUMMARY
         echo "- [Repositório](https://github.com/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
+        
+        # Debug info se falhou
+        if [ "${{ job.status }}" = "failure" ]; then
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ⚠️ Informações de Debug" >> $GITHUB_STEP_SUMMARY
+          echo "- **Workflow:** ${{ github.workflow }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Run ID:** ${{ github.run_id }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+        fi
