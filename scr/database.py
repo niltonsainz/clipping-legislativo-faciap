@@ -7,7 +7,7 @@ import json
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
-from .config import Config
+from scr.config import Config
 
 class DatabaseManager:
     """Gerenciador de banco de dados SQLite para o sistema de clipping"""
@@ -250,4 +250,5 @@ class DatabaseManager:
                 status,
                 observacoes
             ))
+
             conn.commit()
