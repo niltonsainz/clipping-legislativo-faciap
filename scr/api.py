@@ -9,9 +9,9 @@ from datetime import datetime
 from functools import wraps
 import traceback
 
-from .database import DatabaseManager
-from .pipeline import ClippingPipeline
-from .config import Config
+from scr.database import DatabaseManager
+from scr.pipeline import ClippingPipeline
+from scr.config import Config
 
 class ClippingAPI:
     """API REST para o sistema de clipping"""
@@ -565,4 +565,5 @@ def start_api():
     api.run()
 
 if __name__ == '__main__':
+
     start_api()
