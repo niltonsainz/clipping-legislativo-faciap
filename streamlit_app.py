@@ -1,6 +1,6 @@
 """
 Dashboard Streamlit para Sistema de Clipping FACIAP
-Versão para Streamlit Cloud
+Versão para Streamlit Cloud - CORRIGIDA
 
 Desenvolvido por: Nilton Sainz
 Para: FACIAP - Federação das Associações Comerciais e Industriais do Paraná
@@ -91,6 +91,13 @@ st.markdown("""
         font-weight: 600;
         background-color: #edf2f7;
         color: #4a5568;
+    }
+    
+    .resumo-text {
+        font-style: italic;
+        color: #4a5568;
+        margin-top: 0.5rem;
+        line-height: 1.4;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -220,12 +227,33 @@ def obter_classe_relevancia(relevancia):
     else:
         return 'relevancia-baixa'
 
+def limpar_texto(texto):
+    """Limpa texto removendo caracteres especiais e tags HTML"""
+    if not texto or pd.isna(texto):
+        return ""
+    
+    texto = str(texto).strip()
+    
+    # Remove tags HTML comuns de forma mais agressiva
+    import re
+    # Remove qualquer tag HTML
+    texto = re.sub(r'<[^>]*>', '', texto)
+    # Remove caracteres especiais específicos
+    texto = texto.replace('</div>', '').replace('<div>', '').replace('<p>', '').replace('</p>', '')
+    texto = texto.replace('<br>', ' ').replace('<br/>', ' ').replace('<br />', ' ')
+    texto = texto.replace('&nbsp;', ' ').replace('&amp;', '&').replace('&lt;', '<').replace('&gt;', '>')
+    
+    # Remove espaços múltiplos
+    texto = re.sub(r'\s+', ' ', texto)
+    
+    return texto.strip()
+
 # Header principal
 st.markdown("""
 <div class="main-header">
     <h1 style="margin: 0; color: #2c3e50;">📰 Clipping Legislativo FACIAP</h1>
-    <p style="margin: 0.5rem 0 0 0; color: #7f8c8d;">Sistema de monitoramento de notícias legislativas</p>
-    <p style="margin: 0.2rem 0 0 0; color: #95a5a6; font-size: 0.85rem;">Desenvolvido por Nilton Sainz | Versão Teste para Colegas</p>
+    <p style="margin: 0.5rem 0 0 0; color: #7f8c8d;">Sistema de monitoramento de notícias legislativas - Setor de Relações Governamentias e Institucionais</p>
+    <p style="margin: 0.2rem 0 0 0; color: #95a5a6; font-size: 0.85rem;">Desenvolvido por Nilton Sainz | Versão Beta</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -331,9 +359,9 @@ Funcionalidades:
 - ✅ Filtros por fonte e relevância  
 - ✅ Scores de relevância FACIAP
 - ✅ Interface responsiva
-- 🔄 Coleta automática (em desenvolvimento)
+- ✅ Coleta automática funcionando
 
-Feedbacks: Nilton Sainz
+Feedbacks: Nilton Sainz - Relações Governamentais - FACIAP
 """)
 
 # Aplicar filtros
@@ -458,7 +486,7 @@ inicio = (pagina_atual - 1) * noticias_por_pagina
 fim = inicio + noticias_por_pagina
 df_pagina = df_filtrado.iloc[inicio:fim]
 
-# Exibe notícias
+# Exibe notícias - VERSÃO CORRIGIDA
 for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
     fonte_display = formatar_fonte(noticia['fonte'])
     cor_fonte = obter_cor_fonte(noticia['fonte'])
@@ -473,49 +501,98 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
     # Score formatado
     score = noticia['score_interesse'] if pd.notna(noticia['score_interesse']) else 0
     
-    # Card da notícia
+    # Limpa título e resumo
+    titulo_limpo = limpar_texto(noticia['titulo']) or 'Título não disponível'
+    resumo_limpo = limpar_texto(noticia['resumo'])
+    
+    # Card da notícia - SEM HTML INTERNO
     with st.container():
+        # Header do card
         st.markdown(f"""
         <div class="noticia-card">
-            <div class="noticia-titulo">{noticia['titulo'] if pd.notna(noticia['titulo']) else 'Título não disponível'}</div>
+            <div class="noticia-titulo">{titulo_limpo}</div>
             <div class="noticia-meta">
                 <span class="fonte-tag {cor_fonte}">{fonte_display}</span>
                 <span class="{classe_relevancia}">{noticia['relevancia']}</span>
                 <span style="margin-left: 1rem;">{data_pub}</span>
                 {f'<span class="score-badge">Score: {score:.1f}</span>' if score > 0 else ''}
             </div>
+        </div>
         """, unsafe_allow_html=True)
         
-        # Resumo (se disponível)
-        if pd.notna(noticia['resumo']) and noticia['resumo'].strip():
-            st.markdown(f"**Resumo:** {noticia['resumo'][:200]}...")
+        # Resumo APENAS se existir e for válido
+        if resumo_limpo and len(resumo_limpo) > 10:
+            st.markdown(f"**Resumo:** {resumo_limpo[:200]}{'...' if len(resumo_limpo) > 200 else ''}")
         
         # Expandir para ver conteúdo completo
-        if pd.notna(noticia['content']) and noticia['content'].strip():
-            with st.expander("Ver conteúdo completo"):
+        conteudo_limpo = limpar_texto(noticia['content'])
+        if conteudo_limpo and len(conteudo_limpo) > 50:
+            with st.expander("📄 Ver conteúdo completo"):
                 st.markdown(f"**Conteúdo extraído ({noticia['word_count']} palavras):**")
+                
+                # Mostra conteúdo sem HTML
+                conteudo_preview = conteudo_limpo[:2000] + "..." if len(conteudo_limpo) > 2000 else conteudo_limpo
                 st.text_area(
                     "Conteúdo",
-                    value=noticia['content'][:1000] + "..." if len(noticia['content']) > 1000 else noticia['content'],
+                    value=conteudo_preview,
                     height=200,
                     key=f"content_{noticia['id']}",
                     label_visibility="collapsed"
                 )
                 
+                # Eixo temático se disponível
                 if pd.notna(noticia['eixo_principal']) and noticia['eixo_principal']:
-                    st.markdown(f"**Eixo temático:** {noticia['eixo_principal']}")
-                
-                st.markdown(f"[📰 Ver notícia original]({noticia['link']})")
-        else:
-            st.markdown(f"[📰 Ver notícia original]({noticia['link']})")
+                    st.info(f"**Eixo temático:** {noticia['eixo_principal']}")
         
-        st.markdown("</div>", unsafe_allow_html=True)
+        # Link para notícia original
+        st.markdown(f"🔗 [Ver notícia original]({noticia['link']})")
+        
+        # Separador entre notícias
+        st.markdown("---")
+
+# CONTROLES DE PAGINAÇÃO NO FINAL
+if total_paginas > 1:
+    st.markdown("### 📄 Navegação")
+    
+    col_pag1, col_pag2, col_pag3, col_pag4, col_pag5 = st.columns([1, 1, 2, 1, 1])
+    
+    # Botão Anterior
+    with col_pag1:
+        if st.button("⬅️ Anterior", disabled=(st.session_state.pagina_atual <= 1)):
+            st.session_state.pagina_atual -= 1
+            st.rerun()
+    
+    # Seletor de página
+    with col_pag3:
+        nova_pagina = st.selectbox(
+            "Ir para página:",
+            options=range(1, total_paginas + 1),
+            index=st.session_state.pagina_atual - 1,
+            format_func=lambda x: f"Página {x} de {total_paginas}",
+            key="page_selector"
+        )
+        
+        if nova_pagina != st.session_state.pagina_atual:
+            st.session_state.pagina_atual = nova_pagina
+            st.rerun()
+    
+    # Botão Próximo
+    with col_pag5:
+        if st.button("Próximo ➡️", disabled=(st.session_state.pagina_atual >= total_paginas)):
+            st.session_state.pagina_atual += 1
+            st.rerun()
+    
+    # Info da paginação
+    st.markdown(f"""
+    <div style="text-align: center; color: #718096; font-size: 0.9rem; margin-top: 1rem;">
+        Mostrando notícias {inicio + 1} a {min(fim, len(df_filtrado))} de {len(df_filtrado)} total
+    </div>
+    """, unsafe_allow_html=True)
 
 # Footer
-st.markdown("---")
 st.markdown(f"""
-<div style="text-align: center; color: #7f8c8d; font-size: 0.85rem;">
+<div style="text-align: center; color: #7f8c8d; font-size: 0.85rem; margin-top: 2rem;">
     Sistema de Clipping Legislativo FACIAP | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')} <br>
-    Desenvolvido por <strong>Nilton Sainz</strong> | Versão de Teste para Colegas FACIAP
+    Desenvolvido por <strong>Nilton Sainz</strong> | Versão Beta
 </div>
 """, unsafe_allow_html=True)
