@@ -1,9 +1,8 @@
 """
 Dashboard Streamlit para Sistema de Clipping FACIAP
-Versão ajustada: melhorias de UX, paginação completa, ordenação por data de publicação por padrão,
-e limpeza robusta de conteúdo (corrige casos como '</div>' e textos compostos apenas por tags).
+Versão para Streamlit Cloud - DEFINITIVA
 
-Desenvolvido por: Nilton Sainz (ajustes por Copilot)
+Desenvolvido por: Nilton Sainz
 Para: FACIAP - Federação das Associações Comerciais e Industriais do Paraná
 """
 
@@ -11,12 +10,12 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import plotly.express as px
+import plotly.graph_objects as go
 from datetime import datetime, timedelta
+import time
 from pathlib import Path
 import os
 import re
-from html import unescape
-import math
 
 # Configuração da página
 st.set_page_config(
@@ -95,17 +94,6 @@ st.markdown("""
         color: #4a5568;
     }
     
-    .paginacao-container {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 1rem;
-        margin: 2rem 0;
-        padding: 1rem;
-        background-color: #f8f9fa;
-        border-radius: 0.5rem;
-    }
-    
     .page-info {
         text-align: center;
         color: #718096;
@@ -164,7 +152,7 @@ def carregar_dados_banco():
                 s.eixo_principal, s.termos_encontrados
             FROM noticias n
             LEFT JOIN scoring s ON n.id = s.noticia_id
-            ORDER BY n.data_coleta DESC
+            ORDER BY n.data_publicacao DESC, n.data_coleta DESC
         """
         
         with sqlite3.connect(db_path) as conn:
@@ -209,12 +197,11 @@ def formatar_fonte(fonte):
         'senado_federal': 'Senado Federal',
         'agencia_gov': 'Agência Gov'
     }
-    return mapping.get(fonte, (fonte or "").replace('_', ' ').title())
+    return mapping.get(fonte, fonte.replace('_', ' ').title())
 
 def obter_cor_fonte(fonte):
     """Retorna classe CSS para cor da fonte"""
-    fonte = (fonte or "").lower()
-    if 'camara' in fonte or 'deputados' in fonte:
+    if 'camara' in fonte:
         return 'fonte-camara'
     elif 'senado' in fonte:
         return 'fonte-senado'
@@ -230,37 +217,41 @@ def obter_classe_relevancia(relevancia):
     else:
         return 'relevancia-baixa'
 
-def limpar_texto_completo(texto):
-    """Limpa texto COMPLETAMENTE removendo TODAS as tags HTML e caracteres especiais.
-       Retorna string vazia quando o conteúdo é apenas tags ou ruído.
-    """
-    if texto is None or (isinstance(texto, float) and pd.isna(texto)):
+def limpar_texto_final(texto):
+    """VERSÃO FINAL - Remove completamente qualquer resquício de HTML"""
+    if not texto or pd.isna(texto):
         return ""
     
-    # Converte para string e normaliza
-    texto_raw = str(texto).strip()
-    if texto_raw == "":
+    # Converte para string e faz limpeza inicial
+    texto = str(texto).strip()
+    
+    # Se é exatamente uma tag HTML, retorna vazio
+    tags_html = ['</div>', '<div>', '<p>', '</p>', '<br>', '<br/>', '<br />', 
+                 '<span>', '</span>', '<em>', '</em>', '<strong>', '</strong>']
+    if texto in tags_html:
         return ""
     
-    # Remove comentários HTML
-    texto = re.sub(r'<!--.*?-->', '', texto_raw, flags=re.DOTALL)
-    # Remove todas as tags HTML
-    texto = re.sub(r'<[^>]+>', ' ', texto)
-    # Unescape entidades HTML (ex: &nbsp;, &amp;)
-    texto = unescape(texto)
-    # Remove caracteres de controle e bytes inválidos
-    texto = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]+', ' ', texto)
-    # Normaliza espaços em branco
-    texto = re.sub(r'\s+', ' ', texto).strip()
+    # Remove TODAS as tags HTML usando regex mais agressivo
+    texto = re.sub(r'<[^>]*?>', '', texto)  # Tags normais
+    texto = re.sub(r'<[^>]*', '', texto)    # Tags incompletas no início
+    texto = re.sub(r'[^<]*>', '', texto)    # Tags incompletas no fim
+    texto = re.sub(r'&[a-zA-Z0-9#]+;', ' ', texto)  # Entidades HTML
     
-    # Se depois da remoção de tags não sobrou conteúdo alfanumérico suficiente, considera vazio
-    if len(texto) < 3 or not any(c.isalnum() for c in texto):
+    # Remove caracteres de controle
+    texto = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\xff]', '', texto)
+    
+    # Normaliza espaços
+    texto = re.sub(r'\s+', ' ', texto)
+    texto = texto.strip()
+    
+    # Se sobrou menos de 5 caracteres ou só caracteres especiais, retorna vazio
+    if len(texto) < 5 or not re.search(r'[a-zA-Z0-9À-ÿ]', texto):
         return ""
     
     return texto
 
 # Header principal
-st.markdown(f"""
+st.markdown("""
 <div class="main-header">
     <h1 style="margin: 0; color: #2c3e50;">📰 Clipping Legislativo FACIAP</h1>
     <p style="margin: 0.5rem 0 0 0; color: #7f8c8d;">Sistema de monitoramento de notícias legislativas - Setor de Relações Governamentias e Institucionais</p>
@@ -296,17 +287,13 @@ if df is None:
 # Sidebar - Filtros e controles
 st.sidebar.header("🔍 Filtros e Controles")
 
-# Busca por termo (melhora UX)
-termo_busca = st.sidebar.text_input("🔎 Buscar por termo (título, resumo, conteúdo)", value="", help="Digite palavras para filtrar notícias")
-
 # Filtros
 col_filtro1, col_filtro2 = st.sidebar.columns(2)
 
 with col_filtro1:
-    fontes_disponiveis = sorted(list(df['fonte'].dropna().unique()))
     filtro_fonte = st.selectbox(
         "Fonte",
-        options=['Todas'] + fontes_disponiveis,
+        options=['Todas'] + sorted(list(df['fonte'].unique())),
         index=0
     )
 
@@ -333,30 +320,18 @@ filtro_periodo = st.sidebar.selectbox(
     index=3  # Última semana como padrão
 )
 
-# Ordenação - PADRÃO alterado para data de publicação (mais recentes)
+# Ordenação - CORRIGIDA para data de publicação como padrão
 ordenacao_opcoes = {
+    'Data de publicação (mais recentes)': ('data_publicacao', False),
     'Data de coleta (mais recentes)': ('data_coleta', False),
     'Score FACIAP (maior relevância)': ('score_interesse', False),
-    'Data de publicação (mais recentes)': ('data_publicacao', False),
     'Fonte (alfabética)': ('fonte', True)
 }
 
-# Escolhe índice padrão que corresponde a "Data de publicação (mais recentes)"
-ordenacao_keys = list(ordenacao_opcoes.keys())
-default_ordenacao_index = ordenacao_keys.index('Data de publicação (mais recentes)') if 'Data de publicação (mais recentes)' in ordenacao_keys else 0
-
 ordenacao = st.sidebar.selectbox(
     "Ordenar por",
-    options=ordenacao_keys,
-    index=default_ordenacao_index  # agora por data de publicação por padrão
-)
-
-# Itens por página configurável
-noticias_por_pagina = st.sidebar.selectbox(
-    "Mostrar por página",
-    options=[5, 10, 20, 50, 100],
-    index=1,
-    help="Quantidade de notícias mostradas por página"
+    options=list(ordenacao_opcoes.keys()),
+    index=0  # Data de publicação como padrão
 )
 
 # Controles administrativos
@@ -367,16 +342,14 @@ col_btn1, col_btn2 = st.sidebar.columns(2)
 
 with col_btn1:
     if st.button("🔄 Atualizar"):
-        # Limpa cache de dados e força rerun
-        try:
-            st.cache_data.clear()
-        except Exception:
-            pass
-        st.experimental_rerun()
+        st.cache_data.clear()
+        st.rerun()
 
 with col_btn2:
     if st.button("📊 Estatísticas"):
-        st.session_state.show_stats = not st.session_state.get('show_stats', True)
+        if 'show_stats' not in st.session_state:
+            st.session_state.show_stats = True
+        st.session_state.show_stats = not st.session_state.show_stats
 
 # Informações sobre a versão
 st.sidebar.markdown("---")
@@ -406,23 +379,9 @@ if periodo_opcoes[filtro_periodo]:
     data_limite = datetime.now() - timedelta(days=periodo_opcoes[filtro_periodo])
     df_filtrado = df_filtrado[df_filtrado['data_coleta'] >= data_limite]
 
-# Aplicar busca por termo (procura simples em título, resumo e conteúdo)
-if termo_busca and termo_busca.strip():
-    termo = termo_busca.strip().lower()
-    mask = (
-        df_filtrado['titulo'].fillna('').str.lower().str.contains(termo) |
-        df_filtrado['resumo'].fillna('').str.lower().str.contains(termo) |
-        df_filtrado['content'].fillna('').str.lower().str.contains(termo)
-    )
-    df_filtrado = df_filtrado[mask]
-
 # Aplicar ordenação
 campo_ordem, ascendente = ordenacao_opcoes[ordenacao]
-# Quando ordenando por data_publicacao, queremos mostrar primeiro os mais recentes (descendente)
-if campo_ordem in ['data_coleta', 'data_publicacao', 'score_interesse']:
-    df_filtrado = df_filtrado.sort_values(campo_ordem, ascending=ascendente)
-else:
-    df_filtrado = df_filtrado.sort_values(campo_ordem, ascending=ascendente, na_position='last')
+df_filtrado = df_filtrado.sort_values(campo_ordem, ascending=ascendente)
 
 # Área principal - Métricas
 show_stats = st.session_state.get('show_stats', True)
@@ -433,7 +392,7 @@ if show_stats:
         st.metric(
             "Total de Notícias",
             value=len(df),
-            delta=f"{len(df_filtrado)} filtradas"
+            delta=f"+{len(df_filtrado)} filtradas"
         )
     
     with col2:
@@ -505,55 +464,22 @@ if show_stats:
         )
         st.plotly_chart(fig_relevancia, use_container_width=True)
 
-# Lista de notícias - Paginação melhorada (controle antes da listagem)
+# Lista de notícias
 st.markdown("---")
 st.subheader(f"📰 Notícias ({len(df_filtrado)} encontradas)")
 
-# Paginação com session_state
-total_items = len(df_filtrado)
-total_paginas = max(1, math.ceil(total_items / noticias_por_pagina))
+# PAGINAÇÃO CORRIGIDA - SEM LIMITAÇÕES
+noticias_por_pagina = 10
+total_paginas = (len(df_filtrado) + noticias_por_pagina - 1) // noticias_por_pagina
 
-# Inicializa paginação no session_state
+# Inicializa página atual
 if 'pagina_atual' not in st.session_state:
     st.session_state.pagina_atual = 1
 
-# Controles de navegação (prev/next + número)
-col_prev, col_page, col_next = st.columns([1, 2, 1])
-with col_prev:
-    if st.button("◀️ Anterior"):
-        if st.session_state.pagina_atual > 1:
-            st.session_state.pagina_atual -= 1
-
-with col_page:
-    # Número de página como number_input para poder navegar facilmente em muitos resultados
-    pagina_selecionada = st.number_input(
-        "Ir para página",
-        min_value=1,
-        max_value=total_paginas,
-        value=st.session_state.pagina_atual,
-        step=1,
-        format="%d",
-        key="pagina_input"
-    )
-    # Sincroniza pagina_atual com o controle
-    st.session_state.pagina_atual = int(pagina_selecionada)
-
-with col_next:
-    if st.button("Próxima ▶️"):
-        if st.session_state.pagina_atual < total_paginas:
-            st.session_state.pagina_atual += 1
-
-# Calcula slice para a página atual
+# Calcula slice para paginação
 inicio = (st.session_state.pagina_atual - 1) * noticias_por_pagina
 fim = inicio + noticias_por_pagina
 df_pagina = df_filtrado.iloc[inicio:fim]
-
-# Informação contextual de paginação
-st.markdown(f"""
-<div class="page-info">
-    Mostrando notícias {inicio + 1}–{min(fim, total_items)} de {total_items} — Página {st.session_state.pagina_atual} de {total_paginas}
-</div>
-""", unsafe_allow_html=True)
 
 # Exibe notícias da página atual
 for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
@@ -570,9 +496,9 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
     # Score formatado
     score = noticia['score_interesse'] if pd.notna(noticia['score_interesse']) else 0
     
-    # Limpa título e resumo COMPLETAMENTE
-    titulo_limpo = limpar_texto_completo(noticia['titulo']) or 'Título não disponível'
-    resumo_limpo = limpar_texto_completo(noticia['resumo'])
+    # Limpa título e resumo usando a função corrigida
+    titulo_limpo = limpar_texto_final(noticia['titulo']) or 'Título não disponível'
+    resumo_limpo = limpar_texto_final(noticia['resumo'])
     
     # Card da notícia
     with st.container():
@@ -589,12 +515,12 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
         </div>
         """, unsafe_allow_html=True)
         
-        # Resumo APENAS se existir e for válido (SEM tags HTML)
+        # Resumo APENAS se existir e for válido (sem HTML)
         if resumo_limpo and len(resumo_limpo) > 10:
             st.markdown(f"**Resumo:** {resumo_limpo[:200]}{'...' if len(resumo_limpo) > 200 else ''}")
         
         # Expandir para ver conteúdo completo
-        conteudo_limpo = limpar_texto_completo(noticia['content'])
+        conteudo_limpo = limpar_texto_final(noticia['content'])
         if conteudo_limpo and len(conteudo_limpo) > 50:
             with st.expander("📄 Ver conteúdo completo"):
                 st.markdown(f"**Conteúdo extraído ({noticia['word_count']} palavras):**")
@@ -618,6 +544,58 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
         
         # Separador entre notícias
         st.markdown("---")
+
+# PAGINAÇÃO FUNCIONAL NO FINAL
+if total_paginas > 1:
+    st.markdown("### 📄 Navegação entre páginas")
+    
+    col_nav1, col_nav2, col_nav3, col_nav4, col_nav5 = st.columns([1, 1, 2, 1, 1])
+    
+    # Botão Primeira Página
+    with col_nav1:
+        if st.button("⏮️ Primeira", disabled=(st.session_state.pagina_atual == 1)):
+            st.session_state.pagina_atual = 1
+            st.rerun()
+    
+    # Botão Anterior
+    with col_nav2:
+        if st.button("⬅️ Anterior", disabled=(st.session_state.pagina_atual <= 1)):
+            st.session_state.pagina_atual -= 1
+            st.rerun()
+    
+    # Seletor de página
+    with col_nav3:
+        nova_pagina = st.selectbox(
+            "Ir para página:",
+            options=range(1, total_paginas + 1),
+            index=st.session_state.pagina_atual - 1,
+            format_func=lambda x: f"Página {x} de {total_paginas}",
+            key="page_selector"
+        )
+        
+        if nova_pagina != st.session_state.pagina_atual:
+            st.session_state.pagina_atual = nova_pagina
+            st.rerun()
+    
+    # Botão Próximo
+    with col_nav4:
+        if st.button("Próximo ➡️", disabled=(st.session_state.pagina_atual >= total_paginas)):
+            st.session_state.pagina_atual += 1
+            st.rerun()
+    
+    # Botão Última Página
+    with col_nav5:
+        if st.button("⏭️ Última", disabled=(st.session_state.pagina_atual == total_paginas)):
+            st.session_state.pagina_atual = total_paginas
+            st.rerun()
+    
+    # Info da paginação
+    st.markdown(f"""
+    <div class="page-info">
+        Mostrando notícias {inicio + 1} a {min(fim, len(df_filtrado))} de {len(df_filtrado)} total
+        • Página {st.session_state.pagina_atual} de {total_paginas}
+    </div>
+    """, unsafe_allow_html=True)
 
 # Footer
 st.markdown(f"""
