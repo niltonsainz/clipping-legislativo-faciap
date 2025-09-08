@@ -13,9 +13,9 @@ from pathlib import Path
 import pytz
 import signal
 
-from ..pipeline import ClippingPipeline
-from ..database import DatabaseManager
-from ..config import Config
+from scr.pipeline import ClippingPipeline
+from scr.database import DatabaseManager
+from scr.config import Config
 
 class WeekdayScheduler:
     """Agendador para execução em dias úteis apenas"""
@@ -178,3 +178,4 @@ if __name__ == "__main__":
         scheduler.logger.info("🛑 Agendador interrompido pelo usuário")
         scheduler.running = False
         scheduler.remove_lock()
+
