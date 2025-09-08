@@ -5,7 +5,7 @@ import pandas as pd
 import re
 import json
 from typing import Dict, List, Optional
-from .config import Config
+from scr.config import Config
 
 class FACIAPScoring:
     """Sistema de pontuação FACIAP para notícias legislativas"""
@@ -173,4 +173,5 @@ def load_dictionary() -> Optional[pd.DataFrame]:
     try:
         return pd.read_csv(Config.DICTIONARY_FILE)
     except:
+
         return None
