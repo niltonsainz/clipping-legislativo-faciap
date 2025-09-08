@@ -7,7 +7,7 @@ import random
 import re
 from bs4 import BeautifulSoup
 from typing import Dict, Optional
-from .config import Config
+from scr.config import Config
 
 class ContentExtractor:
     """Classe para extração de conteúdo de notícias"""
@@ -174,4 +174,5 @@ def extract_content_simple(url: str, source: str = 'auto') -> Dict:
     try:
         return extractor.extract_content(url, source)
     finally:
+
         extractor.close_session()
