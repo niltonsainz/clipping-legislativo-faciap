@@ -2,27 +2,99 @@ name: Clipping FACIAP Automation
 
 on:
   schedule:
-    # Executa de segunda a sexta às 12h e 18h (horário local ajustado para UTC)
-    - cron: '0 15,21 * * 1-5'
-  workflow_dispatch: # Permite execução manual
+    # Segunda a Sexta às 12h (15h UTC) e 20h (23h UTC) - Horário de Brasília
+    - cron: '0 15,23 * * 1-5'  # 12h e 20h no horário de Brasília, apenas dias úteis
+  workflow_dispatch:  # Permite execução manual
+    inputs:
+      max_pages:
+        description: 'Máximo de páginas por fonte'
+        required: false
+        default: '3'
+      max_extraction:
+        description: 'Máximo de extrações por execução'
+        required: false
+        default: '50'
 
 jobs:
-  run-scheduler:
+  clipping-automation:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       
-    - name: Setup Python
+    - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.9'
         
+    - name: Cache pip dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+        
     - name: Install dependencies
       run: |
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    - name: Execute scheduler script
+    - name: Create directories
       run: |
-        python scr/automation/scheduler.py
+        mkdir -p data logs
+        
+    - name: Restore database
+      uses: actions/cache@v3
+      with:
+        path: data/clipping_faciap.db
+        key: clipping-db-${{ github.run_id }}
+        restore-keys: |
+          clipping-db-
+          
+    - name: Execute clipping pipeline
+      env:
+        MAX_PAGES_PER_SOURCE: ${{ github.event.inputs.max_pages || '3' }}
+        MAX_EXTRACTION_PER_RUN: ${{ github.event.inputs.max_extraction || '50' }}
+        LOG_LEVEL: INFO
+        TZ: America/Sao_Paulo  # Define timezone do Brasil
+      run: |
+        cd scr
+        python -c "
+        from pipeline import ClippingPipeline
+        import os
+        from datetime import datetime
+        
+        # Verifica se é dia útil (segunda a sexta)
+        hoje = datetime.now().weekday()  # 0=Monday, 6=Sunday
+        if hoje >= 5:  # Sábado ou Domingo
+            print('⏭️ Pulando execução - Final de semana')
+            exit(0)
+        
+        print(f'📅 Executando clipping - {datetime.now().strftime(\"%A %d/%m/%Y %H:%M\")}')
+        
+        pipeline = ClippingPipeline()
+        resultado = pipeline.executar_completo(
+            max_pages_por_fonte=int(os.getenv('MAX_PAGES_PER_SOURCE', 3)),
+            limite_extracao=int(os.getenv('MAX_EXTRACTION_PER_RUN', 50)),
+            limite_scoring=100
+        )
+        
+        print(f'✅ Pipeline concluído: {resultado[\"sucesso\"]}')
+        print(f'⏱️ Tempo: {resultado[\"tempo_execucao\"]:.1f}s')
+        print(f'📰 Notícias novas: {resultado[\"coleta\"][\"total_novas\"]}')
+        "
+        
+    - name: Save database
+      uses: actions/cache@v3
+      with:
+        path: data/clipping_faciap.db
+        key: clipping-db-${{ github.run_id }}
+        
+    - name: Upload logs
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: automation-logs
+        path: logs/
+        retention-days: 7
