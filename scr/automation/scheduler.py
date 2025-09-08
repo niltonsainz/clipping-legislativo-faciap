@@ -1,5 +1,6 @@
 """
-Sistema de automação e agendamento do pipeline
+Sistema de agendamento para dias úteis (segunda a sexta) 
+com horários específicos: 12h e 20h (horário de Brasília)
 """
 import os
 import sys
@@ -9,20 +10,22 @@ import threading
 import logging
 from datetime import datetime
 from pathlib import Path
+import pytz
 import signal
 
 from ..pipeline import ClippingPipeline
 from ..database import DatabaseManager
 from ..config import Config
 
-class AutomationScheduler:
-    """Agendador automático para execução do pipeline"""
+class WeekdayScheduler:
+    """Agendador para execução em dias úteis apenas"""
     
     def __init__(self):
         self.setup_logging()
         self.running = False
         self.lock_file = Path(Config.DATABASE_PATH).parent / 'automation.lock'
         self.pipeline = ClippingPipeline()
+        self.tz_brasil = pytz.timezone('America/Sao_Paulo')
         
         # Configurar handler para sinais do sistema
         signal.signal(signal.SIGINT, self._signal_handler)
@@ -33,13 +36,12 @@ class AutomationScheduler:
         log_dir = Path('logs')
         log_dir.mkdir(exist_ok=True)
         
-        # Configuração do logger
         logging.basicConfig(
             level=getattr(logging, Config.LOG_LEVEL),
             format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
             handlers=[
                 logging.handlers.RotatingFileHandler(
-                    log_dir / 'automation.log',
+                    log_dir / 'weekday_automation.log',
                     maxBytes=Config.LOG_MAX_SIZE,
                     backupCount=Config.LOG_BACKUP_COUNT
                 ),
@@ -48,7 +50,57 @@ class AutomationScheduler:
         )
         
         self.logger = logging.getLogger(__name__)
-        self.logger.info("🤖 Sistema de automação inicializado")
+        self.logger.info("🗓️ Sistema de automação para dias úteis inicializado")
+    
+    def _signal_handler(self, signum, frame):
+        """Handler para sinais de sistema"""
+        self.logger.info(f"🛑 Recebido sinal {signum}, finalizando...")
+        self.running = False
+        self.remove_lock()
+        sys.exit(0)
+    
+    def is_business_day(self) -> bool:
+        """Verifica se hoje é dia útil"""
+        agora = datetime.now(self.tz_brasil)
+        return agora.weekday() < 5  # 0-4 = Segunda a Sexta
+    
+    def execute_if_business_day(self):
+        """Executa pipeline apenas se for dia útil"""
+        if not self.is_business_day():
+            agora = datetime.now(self.tz_brasil)
+            self.logger.info(f"⏭️ Pulando execução - {agora.strftime('%A')} não é dia útil")
+            return
+        
+        if self.is_already_running():
+            self.logger.warning("⏭️ Pipeline já está em execução. Pulando...")
+            return
+        
+        try:
+            self.create_lock()
+            agora = datetime.now(self.tz_brasil)
+            self.logger.info(f"🚀 Iniciando execução automática - {agora.strftime('%A, %d/%m/%Y às %H:%M')}")
+            
+            # Executa pipeline
+            resultado = self.pipeline.executar_completo(
+                max_pages_por_fonte=Config.MAX_PAGES_PER_SOURCE,
+                limite_extracao=Config.MAX_EXTRACTION_PER_RUN,
+                limite_scoring=Config.MAX_SCORING_PER_RUN
+            )
+            
+            if resultado['sucesso']:
+                self.logger.info(f"✅ Pipeline concluído em {resultado['tempo_execucao']:.1f}s")
+                self.logger.info(f"   📊 Notícias novas: {resultado['coleta']['total_novas']}")
+                self.logger.info(f"   📄 Extrações: {resultado['extracao']['processadas']}")
+                self.logger.info(f"   🎯 Scoring: {resultado['scoring']['processadas']}")
+            else:
+                self.logger.error("❌ Pipeline falhou")
+                
+        except Exception as e:
+            self.logger.error(f"💥 Erro durante execução: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+        finally:
+            self.remove_lock()
     
     def is_already_running(self) -> bool:
         """Verifica se já existe execução em andamento"""
@@ -81,127 +133,48 @@ class AutomationScheduler:
             self.lock_file.unlink()
             self.logger.debug("Lock removido")
     
-    def execute_pipeline_job(self):
-        """Job para execução do pipeline (usado pelo scheduler)"""
-        if self.is_already_running():
-            self.logger.warning("⏭️ Pipeline já está em execução. Pulando...")
-            return
-        
-        try:
-            self.create_lock()
-            self.logger.info("🚀 Iniciando execução automática do pipeline")
-            
-            # Executa pipeline com configurações padrão
-            resultado = self.pipeline.executar_completo(
-                max_pages_por_fonte=Config.MAX_PAGES_PER_SOURCE,
-                limite_extracao=Config.MAX_EXTRACTION_PER_RUN,
-                limite_scoring=Config.MAX_SCORING_PER_RUN
-            )
-            
-            if resultado['sucesso']:
-                self.logger.info(f"✅ Pipeline concluído em {resultado['tempo_execucao']:.1f}s")
-                self.logger.info(f"   📊 Notícias novas: {resultado['coleta']['total_novas']}")
-                self.logger.info(f"   📄 Extrações: {resultado['extracao']['sucessos']}")
-                self.logger.info(f"   🎯 Scorings: {resultado['scoring']['com_termos']}")
-            else:
-                self.logger.error(f"❌ Pipeline falhou: {resultado.get('erro', 'Erro desconhecido')}")
-            
-        except Exception as e:
-            self.logger.error(f"❌ Erro crítico na execução: {e}", exc_info=True)
-            
-        finally:
-            self.remove_lock()
-    
-    def setup_schedule(self):
-        """Configura agendamento baseado na configuração"""
-        if not Config.SCHEDULE_ENABLED:
-            self.logger.info("📅 Agendamento desabilitado por configuração")
-            return
-        
-        # Limpa agendamentos anteriores
-        schedule.clear()
-        
-        # Agenda execuções para cada horário configurado
-        for time_str in Config.SCHEDULE_TIMES:
-            try:
-                # Agenda para dias úteis
-                schedule.every().monday.at(time_str).do(self.execute_pipeline_job)
-                schedule.every().tuesday.at(time_str).do(self.execute_pipeline_job)
-                schedule.every().wednesday.at(time_str).do(self.execute_pipeline_job)
-                schedule.every().thursday.at(time_str).do(self.execute_pipeline_job)
-                schedule.every().friday.at(time_str).do(self.execute_pipeline_job)
-                
-                self.logger.info(f"⏰ Agendado para: {time_str} (seg-sex)")
-                
-            except Exception as e:
-                self.logger.error(f"❌ Erro ao agendar {time_str}: {e}")
-        
-        self.logger.info(f"📅 Agendamento configurado: {len(Config.SCHEDULE_TIMES)} horários")
-    
     def start_scheduler(self):
-        """Inicia o loop principal do agendador"""
-        self.logger.info("🤖 Iniciando sistema de automação...")
+        """Inicia o agendador com horários específicos para dias úteis"""
+        self.logger.info("📅 Configurando agendamento para dias úteis")
+        self.logger.info("   🕛 Horários: 12:00 e 20:00 (horário de Brasília)")
+        self.logger.info("   📆 Dias: Segunda a Sexta-feira")
         
-        # Configura agendamentos
-        self.setup_schedule()
+        # Agenda para 12:00 (meio-dia)
+        schedule.every().monday.at("12:00").do(self.execute_if_business_day)
+        schedule.every().tuesday.at("12:00").do(self.execute_if_business_day)
+        schedule.every().wednesday.at("12:00").do(self.execute_if_business_day)
+        schedule.every().thursday.at("12:00").do(self.execute_if_business_day)
+        schedule.every().friday.at("12:00").do(self.execute_if_business_day)
         
-        # Execução inicial opcional (descomente se desejar)
-        # self.logger.info("🎯 Executando pipeline inicial...")
-        # self.execute_pipeline_job()
+        # Agenda para 20:00 (noite)
+        schedule.every().monday.at("20:00").do(self.execute_if_business_day)
+        schedule.every().tuesday.at("20:00").do(self.execute_if_business_day)
+        schedule.every().wednesday.at("20:00").do(self.execute_if_business_day)
+        schedule.every().thursday.at("20:00").do(self.execute_if_business_day)
+        schedule.every().friday.at("20:00").do(self.execute_if_business_day)
         
         self.running = True
-        self.logger.info("⏰ Aguardando próximas execuções agendadas...")
+        self.logger.info("✅ Agendador iniciado com sucesso")
         
         # Loop principal
         while self.running:
-            try:
-                schedule.run_pending()
-                time.sleep(60)  # Verifica agendamentos a cada minuto
-                
-            except KeyboardInterrupt:
-                self.logger.info("⌨️ Interrupção pelo usuário")
-                break
-            except Exception as e:
-                self.logger.error(f"❌ Erro no loop principal: {e}", exc_info=True)
-                time.sleep(60)  # Aguarda antes de tentar novamente
-        
-        self.stop()
+            schedule.run_pending()
+            time.sleep(60)  # Verifica a cada minuto
     
-    def stop(self):
-        """Para o agendador e limpa recursos"""
-        self.logger.info("🛑 Parando sistema de automação...")
-        self.running = False
-        self.remove_lock()
-        
-        # Cleanup de recursos
-        if hasattr(self.pipeline, 'content_extractor'):
-            self.pipeline.content_extractor.close_session()
-        
-        self.logger.info("✅ Sistema de automação parado")
-    
-    def _signal_handler(self, signum, frame):
-        """Handler para sinais do sistema operacional"""
-        self.logger.info(f"📡 Sinal recebido: {signum}")
-        self.stop()
-        sys.exit(0)
-    
-    def run_once(self):
-        """Executa pipeline uma única vez (para testes)"""
-        self.logger.info("🎯 Execução única solicitada")
-        self.execute_pipeline_job()
-
-def main():
-    """Função principal para execução do agendador"""
-    scheduler = AutomationScheduler()
-    
-    # Verifica argumentos de linha de comando
-    if len(sys.argv) > 1 and sys.argv[1] == '--once':
-        scheduler.run_once()
-    else:
-        try:
-            scheduler.start_scheduler()
-        except KeyboardInterrupt:
-            scheduler.stop()
+    def run_now(self):
+        """Executa imediatamente (para testes)"""
+        self.logger.info("🧪 Execução manual solicitada")
+        self.execute_if_business_day()
 
 if __name__ == "__main__":
-    main()
+    scheduler = WeekdayScheduler()
+    
+    try:
+        if len(sys.argv) > 1 and sys.argv[1] == '--run-now':
+            scheduler.run_now()
+        else:
+            scheduler.start_scheduler()
+    except KeyboardInterrupt:
+        scheduler.logger.info("🛑 Agendador interrompido pelo usuário")
+        scheduler.running = False
+        scheduler.remove_lock()
