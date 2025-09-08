@@ -1,5 +1,6 @@
 """
 Configurações centralizadas do sistema FACIAP
+Atualizado com configurações de agendamento para dias úteis
 """
 import os
 from pathlib import Path
@@ -14,7 +15,7 @@ class Config:
     DATABASE_PATH = os.getenv('DATABASE_PATH', str(DATA_DIR / 'clipping_faciap.db'))
     
     # Scraping
-    MAX_PAGES_PER_SOURCE = int(os.getenv('MAX_PAGES_PER_SOURCE', '5'))
+    MAX_PAGES_PER_SOURCE = int(os.getenv('MAX_PAGES_PER_SOURCE', '3'))
     REQUEST_TIMEOUT = int(os.getenv('REQUEST_TIMEOUT', '10'))
     MIN_DELAY = float(os.getenv('MIN_DELAY', '1.0'))
     MAX_DELAY = float(os.getenv('MAX_DELAY', '3.0'))
@@ -33,10 +34,12 @@ class Config:
     API_PORT = int(os.getenv('API_PORT', '5000'))
     API_DEBUG = os.getenv('API_DEBUG', 'False').lower() == 'true'
     
-    # Automation
+    # Automation - ATUALIZADO para dias úteis
     SCHEDULE_ENABLED = os.getenv('SCHEDULE_ENABLED', 'True').lower() == 'true'
-    SCHEDULE_TIMES = os.getenv('SCHEDULE_TIMES', '08:00,14:00,20:00').split(',')
+    SCHEDULE_TIMES = os.getenv('SCHEDULE_TIMES', '12:00,20:00').split(',')  # Apenas 12h e 20h
+    WEEKDAYS_ONLY = os.getenv('WEEKDAYS_ONLY', 'True').lower() == 'true'   # NOVO: apenas dias úteis
     RETENTION_DAYS = int(os.getenv('RETENTION_DAYS', '60'))
+    TIMEZONE = os.getenv('TIMEZONE', 'America/Sao_Paulo')  # NOVO: timezone do Brasil
     
     # Monitoring
     LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO')
