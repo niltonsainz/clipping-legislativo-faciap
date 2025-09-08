@@ -496,9 +496,9 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
     # Score formatado
     score = noticia['score_interesse'] if pd.notna(noticia['score_interesse']) else 0
     
-    # Limpa título e resumo usando a função ULTRA AGRESSIVA
-    titulo_limpo = limpar_texto_ultra_agressivo(noticia['titulo']) or 'Título não disponível'
-    resumo_limpo = limpar_texto_ultra_agressivo(noticia['resumo'])
+    # Limpa título e resumo usando a função corrigida
+    titulo_limpo = limpar_texto_final(noticia['titulo']) or 'Título não disponível'
+    resumo_limpo = limpar_texto_final(noticia['resumo'])
     
     # Card da notícia
     with st.container():
@@ -520,7 +520,7 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
             st.markdown(f"**Resumo:** {resumo_limpo[:250]}{'...' if len(resumo_limpo) > 250 else ''}")
         
         # Expandir para ver conteúdo completo
-        conteudo_limpo = limpar_texto_ultra_agressivo(noticia['content'])
+        conteudo_limpo = limpar_texto_final(noticia['content'])
         if conteudo_limpo and len(conteudo_limpo) >= 100:
             with st.expander("📄 Ver conteúdo completo"):
                 st.markdown(f"**Conteúdo extraído ({noticia['word_count']} palavras):**")
