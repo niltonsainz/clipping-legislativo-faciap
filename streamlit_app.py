@@ -21,6 +21,7 @@ Para: FACIAP - Federação das Associações Comerciais e Industriais do Paraná
 # =========================
 import os
 import re
+import time
 import sqlite3
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -97,7 +98,6 @@ st.markdown("""
         color: #2d3748;
         margin-bottom: 0.5rem;
         line-height: 1.4;
-        word-break: break-word;
     }
     
     .noticia-meta {
@@ -114,7 +114,6 @@ st.markdown("""
         font-weight: 600;
         background-color: #edf2f7;
         color: #4a5568;
-        margin-left: .5rem;
     }
     
     .page-info {
@@ -178,6 +177,7 @@ def carregar_dados_banco(db_mtime: float):
             """)
             return None, None
 
+        # Consulta principal
         query = """
             SELECT 
                 n.id, n.titulo, n.link, n.resumo, n.fonte, n.content,
@@ -192,11 +192,12 @@ def carregar_dados_banco(db_mtime: float):
         with sqlite3.connect(db_path) as conn:
             df = pd.read_sql_query(query, conn)
 
+        # Processa dados com segurança
         if df is None or df.empty:
             stats = {"total_noticias": 0, "por_fonte": {}, "com_conteudo": 0}
             return df, stats
 
-        # Datas
+        # Conversões de data
         if "data_coleta" in df.columns:
             df["data_coleta"] = pd.to_datetime(df["data_coleta"], errors="coerce")
         if "data_publicacao" in df.columns:
@@ -208,12 +209,18 @@ def carregar_dados_banco(db_mtime: float):
         if "relevancia" in df.columns:
             df["relevancia"] = df["relevancia"].fillna("Baixa")
 
-        # Conteúdo e flags
+        # extraction_success pode vir 0/1/NULL — normaliza para boolean
         if "extraction_success" in df.columns:
-            df["extraction_success"] = df["extraction_success"].fillna(0).astype(int).astype(bool)
+            df["extraction_success"] = (
+                df["extraction_success"]
+                .fillna(0)
+                .astype(int)
+                .astype(bool)
+            )
         else:
             df["extraction_success"] = False
 
+        # word_count seguro
         if "word_count" in df.columns:
             df["word_count"] = pd.to_numeric(df["word_count"], errors="coerce").fillna(0).astype(int)
         else:
@@ -283,8 +290,11 @@ def limpar_conteudo_html(texto):
     texto_str = str(texto).strip()
     if not texto_str:
         return None
-    texto_limpo = re.sub(r"<[^>]*>", "", texto_str)      # remove tags
-    texto_limpo = re.sub(r"&[a-zA-Z0-9#]+;", " ", texto_limpo)  # remove entidades
+    # Remove tags
+    texto_limpo = re.sub(r"<[^>]*>", "", texto_str)
+    # Remove entidades
+    texto_limpo = re.sub(r"&[a-zA-Z0-9#]+;", " ", texto_limpo)
+    # Normaliza espaços
     texto_limpo = re.sub(r"\s+", " ", texto_limpo).strip()
     return texto_limpo or None
 
@@ -327,13 +337,15 @@ def renderizar_conteudo_seguro(conteudo):
     conteudo_valido = verificar_conteudo_valido(conteudo)
     if not conteudo_valido:
         return None
-    return (conteudo_valido
-            .replace("&", "&amp;")
-            .replace("<", "&lt;")
-            .replace(">", "&gt;"))
+    # Escapa em ordem correta (& antes de < > para evitar dupla-escapada)
+    conteudo_escapado = (conteudo_valido
+                         .replace("&", "&amp;")
+                         .replace("<", "&lt;")
+                         .replace(">", "&gt;"))
+    return conteudo_escapado
 
 def exibir_noticia_card(noticia, index: int):
-    """Exibe card de notícia com renderização segura e sem indentação de HTML (evita </div> solto)."""
+    """Exibe card de notícia com renderização segura."""
     fonte_display = formatar_fonte(noticia.get("fonte", ""))
     cor_fonte = obter_cor_fonte(noticia.get("fonte", ""))
     classe_relevancia = obter_classe_relevancia(noticia.get("relevancia", "Baixa"))
@@ -349,8 +361,9 @@ def exibir_noticia_card(noticia, index: int):
         data_pub = "Data não disponível"
 
     # Score
+    score_raw = noticia.get("score_interesse", 0) or 0
     try:
-        score = float(noticia.get("score_interesse", 0) or 0)
+        score = float(score_raw)
     except Exception:
         score = 0.0
 
@@ -365,66 +378,65 @@ def exibir_noticia_card(noticia, index: int):
         titulo_limpo = f"Notícia {fonte_label} - {data_pub}"
 
     # Word count seguro
+    wc_raw = noticia.get("word_count", 0) or 0
     try:
-        word_count = int(noticia.get("word_count", 0) or 0)
+        word_count = int(wc_raw)
     except Exception:
         word_count = 0
 
-    # ----- Header do card sem indentação -----
-    header_html = (
-f"""<div class="noticia-card">
-<div class="noticia-titulo">{titulo_limpo}</div>
-<div class="noticia-meta">
-<span class="fonte-tag {cor_fonte}">{fonte_display}</span>
-<span class="{classe_relevancia}">{noticia.get('relevancia', 'Baixa')}</span>
-<span style="margin-left: 1rem;">{data_pub}</span>
-{f'<span class="score-badge">Score: {score:.1f}</span>' if score > 0 else ''}
-</div>
-</div>"""
-    )
-    st.markdown(header_html, unsafe_allow_html=True)
-    # -----------------------------------------
+    # Card
+    with st.container():
+        st.markdown(f"""
+        <div class="noticia-card">
+            <div class="noticia-titulo">{titulo_limpo}</div>
+            <div class="noticia-meta">
+                <span class="fonte-tag {cor_fonte}">{fonte_display}</span>
+                <span class="{classe_relevancia}">{noticia.get('relevancia', 'Baixa')}</span>
+                <span style="margin-left: 1rem;">{data_pub}</span>
+                {f'<span class="score-badge">Score: {score:.1f}</span>' if score > 0 else ''}
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # Resumo
-    if resumo_limpo:
-        resumo_preview = (resumo_limpo[:300] + "...") if len(resumo_limpo) > 300 else resumo_limpo
-        st.markdown(f"**Resumo:** {resumo_preview}")
-    else:
-        st.markdown('<div class="conteudo-indisponivel">ℹ️ Resumo não disponível para esta notícia</div>', unsafe_allow_html=True)
+        # Resumo
+        if resumo_limpo:
+            resumo_preview = (resumo_limpo[:300] + "...") if len(resumo_limpo) > 300 else resumo_limpo
+            st.markdown(f"**Resumo:** {resumo_preview}")
+        else:
+            st.markdown('<div class="conteudo-indisponivel">ℹ️ Resumo não disponível para esta notícia</div>', unsafe_allow_html=True)
 
-    # Conteúdo completo
-    if conteudo_limpo:
-        with st.expander("📄 Ver conteúdo completo"):
-            st.markdown(f"**Conteúdo extraído ({word_count} palavras):**")
-            conteudo_preview = (conteudo_limpo[:3000] + "...") if len(conteudo_limpo) > 3000 else conteudo_limpo
-            st.text(conteudo_preview)
-            eixo = noticia.get("eixo_principal")
-            if pd.notna(eixo) and eixo:
-                eixo_limpo = renderizar_conteudo_seguro(eixo)
-                if eixo_limpo:
-                    st.info(f"**Eixo temático:** {eixo_limpo}")
-    else:
-        with st.expander("📄 Conteúdo não disponível"):
-            st.markdown('<div class="conteudo-indisponivel">⚠️ O conteúdo completo não pôde ser extraído para esta notícia. Acesse o link original para ler o texto completo.</div>', unsafe_allow_html=True)
+        # Conteúdo completo
+        if conteudo_limpo:
+            with st.expander("📄 Ver conteúdo completo"):
+                st.markdown(f"**Conteúdo extraído ({word_count} palavras):**")
+                conteudo_preview = (conteudo_limpo[:3000] + "...") if len(conteudo_limpo) > 3000 else conteudo_limpo
+                st.text(conteudo_preview)
+                eixo = noticia.get("eixo_principal")
+                if pd.notna(eixo) and eixo:
+                    eixo_limpo = renderizar_conteudo_seguro(eixo)
+                    if eixo_limpo:
+                        st.info(f"**Eixo temático:** {eixo_limpo}")
+        else:
+            with st.expander("📄 Conteúdo não disponível"):
+                st.markdown('<div class="conteudo-indisponivel">⚠️ O conteúdo completo não pôde ser extraído para esta notícia. Acesse o link original para ler o texto completo.</div>', unsafe_allow_html=True)
 
-    # Link
-    link = noticia.get("link")
-    if link and str(link).strip():
-        st.markdown(f"🔗 [Ver notícia original]({link})")
-    else:
-        st.markdown("🔗 Link não disponível")
+        # Link
+        link = noticia.get("link")
+        if link and str(link).strip():
+            st.markdown(f"🔗 [Ver notícia original]({link})")
+        else:
+            st.markdown("🔗 Link não disponível")
 
 # =========================
 # Header
 # =========================
-st.markdown(
-"""<div class="main-header">
-  <h1 style="margin: 0; color: #2c3e50;">📰 Clipping Legislativo FACIAP</h1>
-  <p style="margin: 0.5rem 0 0 0; color: #7f8c8d;">Sistema de monitoramento de notícias legislativas - Setor de Relações Governamentais e Institucionais</p>
-  <p style="margin: 0.2rem 0 0 0; color: #95a5a6; font-size: 0.85rem;">Desenvolvido por Nilton Sainz | Versão Corrigida</p>
-</div>""",
-    unsafe_allow_html=True
-)
+st.markdown("""
+<div class="main-header">
+    <h1 style="margin: 0; color: #2c3e50;">📰 Clipping Legislativo FACIAP</h1>
+    <p style="margin: 0.5rem 0 0 0; color: #7f8c8d;">Sistema de monitoramento de notícias legislativas - Setor de Relações Governamentais e Institucionais</p>
+    <p style="margin: 0.2rem 0 0 0; color: #95a5a6; font-size: 0.85rem;">Desenvolvido por Nilton Sainz | Versão Corrigida</p>
+</div>
+""", unsafe_allow_html=True)
 
 # =========================
 # Sidebar — Status do DB
@@ -436,11 +448,11 @@ if Path(db_path).exists():
     db_modified = datetime.fromtimestamp(Path(db_path).stat().st_mtime)
     st.sidebar.success("✅ Banco conectado")
     st.sidebar.markdown(f"""
-**Informações do Banco:**
-- 📁 Arquivo: `{Path(db_path).name}`
-- 📏 Tamanho: {db_size:.1f} MB
-- 🕒 Modificado: {db_modified.strftime('%d/%m/%Y %H:%M')}
-""")
+    **Informações do Banco:**
+    - 📁 Arquivo: `{Path(db_path).name}`
+    - 📏 Tamanho: {db_size:.1f} MB
+    - 🕒 Modificado: {db_modified.strftime('%d/%m/%Y %H:%M')}
+    """)
 else:
     st.sidebar.error("❌ Banco não encontrado")
 
@@ -496,12 +508,6 @@ with col_btn2:
     if st.button("📊 Estatísticas"):
         st.session_state["show_stats"] = not st.session_state.get("show_stats", True)
 
-# Botão de força de download do artifact (ignora TTL)
-if st.sidebar.button("⬇️ Atualizar do Actions (forçar)"):
-    download_latest_db_artifact(dest_path="data/clipping_faciap.db", max_age_seconds=0)
-    st.cache_data.clear()
-    st.rerun()
-
 st.sidebar.markdown("---")
 st.sidebar.success("""
 ✅ **Versão Corrigida**
@@ -530,6 +536,7 @@ if filtro_relevancia != "Todas":
 dias = periodo_opcoes[filtro_periodo]
 if dias:
     data_limite = datetime.now() - timedelta(days=dias)
+    # Garante comparação válida mesmo com NaT
     df_filtrado = df_filtrado[df_filtrado["data_coleta"].fillna(pd.Timestamp(1970, 1, 1)) >= data_limite]
 
 campo_ordem, ascendente = ordenacao_opcoes[ordenacao]
@@ -618,20 +625,49 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
             st.write({k: noticia.get(k) for k in ["id", "fonte", "link"] if k in noticia})
 
 if total_paginas > 1:
-    st.markdown(
-f"""<div class="page-info">
-Mostrando notícias {inicio + 1} a {min(fim, len(df_filtrado))} de {len(df_filtrado)} total • Página {st.session_state.pagina_atual} de {total_paginas}
-</div>""",
-        unsafe_allow_html=True
-    )
+    st.markdown("### 📄 Navegação entre páginas")
+    col_nav1, col_nav2, col_nav3, col_nav4, col_nav5 = st.columns([1, 1, 2, 1, 1])
+    with col_nav1:
+        if st.button("⏮️ Primeira", disabled=(st.session_state.pagina_atual == 1)):
+            st.session_state.pagina_atual = 1
+            st.rerun()
+    with col_nav2:
+        if st.button("⬅️ Anterior", disabled=(st.session_state.pagina_atual <= 1)):
+            st.session_state.pagina_atual -= 1
+            st.rerun()
+    with col_nav3:
+        nova_pagina = st.selectbox(
+            "Ir para página:",
+            options=list(range(1, total_paginas + 1)),
+            index=st.session_state.pagina_atual - 1,
+            format_func=lambda x: f"Página {x} de {total_paginas}",
+            key="page_selector"
+        )
+        if nova_pagina != st.session_state.pagina_atual:
+            st.session_state.pagina_atual = nova_pagina
+            st.rerun()
+    with col_nav4:
+        if st.button("Próximo ➡️", disabled=(st.session_state.pagina_atual >= total_paginas)):
+            st.session_state.pagina_atual += 1
+            st.rerun()
+    with col_nav5:
+        if st.button("⏭️ Última", disabled=(st.session_state.pagina_atual == total_paginas)):
+            st.session_state.pagina_atual = total_paginas
+            st.rerun()
+
+    st.markdown(f"""
+    <div class="page-info">
+        Mostrando notícias {inicio + 1} a {min(fim, len(df_filtrado))} de {len(df_filtrado)} total
+        • Página {st.session_state.pagina_atual} de {total_paginas}
+    </div>
+    """, unsafe_allow_html=True)
 
 # =========================
 # Footer
 # =========================
-st.markdown(
-f"""<div style="text-align: center; color: #7f8c8d; font-size: 0.85rem; margin-top: 2rem;">
-  Sistema de Clipping Legislativo FACIAP | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')} <br>
-  Desenvolvido por <strong>Nilton Sainz</strong> | Versão Corrigida - Problema do &lt;/div&gt; RESOLVIDO
-</div>""",
-    unsafe_allow_html=True
-)
+st.markdown(f"""
+<div style="text-align: center; color: #7f8c8d; font-size: 0.85rem; margin-top: 2rem;">
+    Sistema de Clipping Legislativo FACIAP | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')} <br>
+    Desenvolvido por <strong>Nilton Sainz</strong> | Versão Corrigida - Problema do &lt;/div&gt; RESOLVIDO
+</div>
+""", unsafe_allow_html=True)
