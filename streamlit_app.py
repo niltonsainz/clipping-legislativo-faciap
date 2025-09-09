@@ -462,10 +462,9 @@ st.sidebar.header("🔍 Filtros e Controles")
 col_filtro1, col_filtro2 = st.sidebar.columns(2)
 with col_filtro1:
     opcoes_fontes = sorted(list(df["fonte"].dropna().unique()))
-    filtro_fonte = st.selectbox("Fonte", options=["Todas"] + opcoes_fontes, index=0)
-
+    filtro_fonte = st.selectbox("Fonte", options=["Todas"] + opcoes_fontes, index=0, key="filtro_fonte")
 with col_filtro2:
-    filtro_relevancia = st.selectbox("Relevância", options=["Todas", "Alta", "Média", "Baixa"], index=0)
+    filtro_relevancia = st.selectbox("Relevância", options=["Todas", "Alta", "Média", "Baixa"], index=0, key="filtro_relevancia")
 
 periodo_opcoes = {
     "Todos os períodos": None,
@@ -475,7 +474,7 @@ periodo_opcoes = {
     "Últimas 2 semanas": 14,
     "Último mês": 30
 }
-filtro_periodo = st.sidebar.selectbox("Período", options=list(periodo_opcoes.keys()), index=3)
+filtro_periodo = st.sidebar.selectbox("Período", options=list(periodo_opcoes.keys()), index=3, key="filtro_periodo")
 
 ordenacao_opcoes = {
     "Data de publicação (mais recentes)": ("data_publicacao", False),
@@ -483,21 +482,28 @@ ordenacao_opcoes = {
     "Score FACIAP (maior relevância)": ("score_interesse", False),
     "Fonte (alfabética)": ("fonte", True)
 }
-ordenacao = st.sidebar.selectbox("Ordenar por", options=list(ordenacao_opcoes.keys()), index=0)
+ordenacao = st.sidebar.selectbox("Ordenar por", options=list(ordenacao_opcoes.keys()), index=0, key="ordenacao")
 
+# Itens por página (dinâmico)
+itens_opts = [10, 20, 30, 50]
+default_itens = st.session_state.get("itens_por_pagina", 10)
+default_idx = itens_opts.index(default_itens) if default_itens in itens_opts else 0
+itens_por_pagina = st.sidebar.selectbox("Itens por página", itens_opts, index=default_idx, key="itens_por_pagina")
+
+# Botões
 st.sidebar.markdown("---")
 st.sidebar.subheader("⚙️ Controles do Sistema")
 col_btn1, col_btn2 = st.sidebar.columns(2)
 with col_btn1:
-    if st.button("🔄 Atualizar"):
+    if st.button("🔄 Atualizar", key="btn_refresh"):
         st.cache_data.clear()
         st.rerun()
 with col_btn2:
-    if st.button("📊 Estatísticas"):
+    if st.button("📊 Estatísticas", key="btn_stats"):
         st.session_state["show_stats"] = not st.session_state.get("show_stats", True)
 
 # Botão de força de download do artifact (ignora TTL)
-if st.sidebar.button("⬇️ Atualizar do Actions (forçar)"):
+if st.sidebar.button("⬇️ Atualizar do Actions (forçar)", key="btn_force_artifact"):
     download_latest_db_artifact(dest_path="data/clipping_faciap.db", max_age_seconds=0)
     st.cache_data.clear()
     st.rerun()
@@ -517,8 +523,27 @@ Sistema totalmente funcional!
 """)
 
 # =========================
-# Filtros e ordenação
+# Filtros e ordenação (aplicação)
 # =========================
+# Se qualquer filtro/ordenador/itens mudar, resetar para a primeira página
+changed = False
+for key, current in {
+    "last_fonte": filtro_fonte,
+    "last_relevancia": filtro_relevancia,
+    "last_periodo": filtro_periodo,
+    "last_ordenacao": ordenacao,
+    "last_itens": itens_por_pagina,
+}.items():
+    if st.session_state.get(key) != current:
+        st.session_state[key] = current
+        changed = True
+
+if "pagina_atual" not in st.session_state:
+    st.session_state.pagina_atual = 1
+elif changed:
+    st.session_state.pagina_atual = 1
+
+# Copia e filtra
 df_filtrado = df.copy()
 
 if filtro_fonte != "Todas":
@@ -560,53 +585,24 @@ if show_stats:
             st.metric("Score Médio", "N/A", "Sem dados")
 
 # =========================
-# Gráficos
-# =========================
-if show_stats:
-    col_chart1, col_chart2 = st.columns(2)
-    with col_chart1:
-        if "fonte" in df.columns and not df.empty:
-            fonte_counts = df["fonte"].value_counts()
-            fonte_labels = [formatar_fonte(f) for f in fonte_counts.index]
-            fig_fonte = px.pie(
-                values=fonte_counts.values,
-                names=fonte_labels,
-                title="Distribuição por Fonte",
-                color_discrete_sequence=["#2c5282", "#2d3748", "#2b6cb0"]
-            )
-            fig_fonte.update_layout(height=300, showlegend=True, margin=dict(t=40, b=0, l=0, r=0))
-            st.plotly_chart(fig_fonte, use_container_width=True)
-    with col_chart2:
-        if "relevancia" in df.columns and not df.empty:
-            relevancia_counts = df["relevancia"].value_counts()
-            colors = {"Alta": "#e53e3e", "Média": "#dd6b20", "Baixa": "#38a169"}
-            fig_relevancia = px.bar(
-                x=relevancia_counts.index,
-                y=relevancia_counts.values,
-                title="Distribuição por Relevância",
-                color=relevancia_counts.index,
-                color_discrete_map=colors
-            )
-            fig_relevancia.update_layout(height=300, showlegend=False, margin=dict(t=40, b=0, l=0, r=0))
-            st.plotly_chart(fig_relevancia, use_container_width=True)
-
-# =========================
-# Lista de notícias (paginação)
+# Lista de notícias (paginação dinâmica)
 # =========================
 st.markdown("---")
 st.subheader(f"📰 Notícias ({len(df_filtrado)} encontradas)")
 
-noticias_por_pagina = 10
-total_paginas = max(1, (len(df_filtrado) + noticias_por_pagina - 1) // noticias_por_pagina)
+# Quantidade por página definida na sidebar
+noticias_por_pagina = int(itens_por_pagina)
 
-if "pagina_atual" not in st.session_state:
-    st.session_state.pagina_atual = 1
+# Calcula total de páginas e mantém página dentro dos limites
+total_paginas = max(1, (len(df_filtrado) + noticias_por_pagina - 1) // noticias_por_pagina)
 st.session_state.pagina_atual = max(1, min(st.session_state.pagina_atual, total_paginas))
 
+# Slice da página
 inicio = (st.session_state.pagina_atual - 1) * noticias_por_pagina
 fim = inicio + noticias_por_pagina
 df_pagina = df_filtrado.iloc[inicio:fim]
 
+# Render das notícias
 for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
     try:
         exibir_noticia_card(noticia, idx)
@@ -617,11 +613,58 @@ for idx, (_, noticia) in enumerate(df_pagina.iterrows()):
         with st.expander("🔍 Detalhes da notícia com erro"):
             st.write({k: noticia.get(k) for k in ["id", "fonte", "link"] if k in noticia})
 
+# Controles de paginação
 if total_paginas > 1:
+    st.markdown("### 📄 Navegação entre páginas")
+    col_nav1, col_nav2, col_nav3, col_nav4, col_nav5 = st.columns([1, 1, 2, 1, 1])
+
+    # Primeira
+    with col_nav1:
+        if st.button("⏮️ Primeira", key="pg_first",
+                     disabled=(st.session_state.pagina_atual == 1)):
+            st.session_state.pagina_atual = 1
+            st.rerun()
+
+    # Anterior
+    with col_nav2:
+        if st.button("⬅️ Anterior", key="pg_prev",
+                     disabled=(st.session_state.pagina_atual <= 1)):
+            st.session_state.pagina_atual -= 1
+            st.rerun()
+
+    # Seletor de página
+    with col_nav3:
+        nova_pagina = st.selectbox(
+            "Ir para página:",
+            options=list(range(1, total_paginas + 1)),
+            index=st.session_state.pagina_atual - 1,
+            format_func=lambda x: f"Página {x} de {total_paginas}",
+            key="page_selector_main"
+        )
+        if nova_pagina != st.session_state.pagina_atual:
+            st.session_state.pagina_atual = nova_pagina
+            st.rerun()
+
+    # Próxima
+    with col_nav4:
+        if st.button("Próximo ➡️", key="pg_next",
+                     disabled=(st.session_state.pagina_atual >= total_paginas)):
+            st.session_state.pagina_atual += 1
+            st.rerun()
+
+    # Última
+    with col_nav5:
+        if st.button("⏭️ Última", key="pg_last",
+                     disabled=(st.session_state.pagina_atual == total_paginas)):
+            st.session_state.pagina_atual = total_paginas
+            st.rerun()
+
+    # Info da paginação
     st.markdown(
-f"""<div class="page-info">
-Mostrando notícias {inicio + 1} a {min(fim, len(df_filtrado))} de {len(df_filtrado)} total • Página {st.session_state.pagina_atual} de {total_paginas}
-</div>""",
+        f"""<div class="page-info">
+        Mostrando notícias {inicio + 1} a {min(fim, len(df_filtrado))} de {len(df_filtrado)} total
+        • Página {st.session_state.pagina_atual} de {total_paginas}
+        </div>""",
         unsafe_allow_html=True
     )
 
