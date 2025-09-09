@@ -30,7 +30,6 @@ on:
 env:
   TZ: America/Sao_Paulo
 
-# Recomendações de segurança e evitar corridas
 permissions:
   contents: read
 
@@ -78,40 +77,35 @@ jobs:
         MAX_SCORING_PER_RUN: ${{ github.event.inputs.max_scoring || '100' }}
         FORCE_EXECUTION: ${{ github.event.inputs.force_execution || 'false' }}
         LOG_LEVEL: INFO
-        PYTHONPATH: ${{ github.workspace }}
       run: |
-        python -c "
-        import sys
+        python - <<'PY'
         import os
-        from pathlib import Path
-
-        # Adiciona o diretório scr ao path
-        sys.path.insert(0, str(Path.cwd() / 'scr'))
-
-        from pipeline import ClippingPipeline
         from datetime import datetime
         import pytz
+
+        # Importa o pipeline do pacote scr
+        from scr.pipeline import ClippingPipeline
 
         # Configuração de timezone
         tz_brasil = pytz.timezone('America/Sao_Paulo')
         agora = datetime.now(tz_brasil)
 
         # Verifica se deve executar
-        force_execution = os.getenv('FORCE_EXECUTION', 'false').lower() == 'true'
+        force_execution = str(os.getenv('FORCE_EXECUTION', 'false')).lower() == 'true'
         is_weekday = agora.weekday() < 5  # 0=Monday, 6=Sunday
 
         if not force_execution and not is_weekday:
-            print(f'⏭️ Pulando execução - {agora.strftime(\"%A\")} não é dia útil')
-            sys.exit(0)
+            print(f'⏭️ Pulando execução - {agora.strftime("%%A")} não é dia útil')
+            raise SystemExit(0)
 
         print('🚀 INICIANDO PIPELINE AUTOMATIZADO')
         print('=' * 50)
-        print(f'📅 Data/Hora: {agora.strftime(\"%A, %d/%m/%Y às %H:%M\")}')
+        print(f'📅 Data/Hora: {agora.strftime("%%A, %%d/%%m/%%Y às %%H:%%M")}')
         print(f'🌍 Timezone: {agora.tzname()}')
-        print(f'📊 Parâmetros:')
-        print(f'   • Max páginas por fonte: {os.getenv(\"MAX_PAGES_PER_SOURCE\", \"3\")}')
-        print(f'   • Max extrações: {os.getenv(\"MAX_EXTRACTION_PER_RUN\", \"50\")}')
-        print(f'   • Max scoring: {os.getenv(\"MAX_SCORING_PER_RUN\", \"100\")}')
+        print('📊 Parâmetros:')
+        print(f'   • Max páginas por fonte: {os.getenv("MAX_PAGES_PER_SOURCE", "3")}')
+        print(f'   • Max extrações: {os.getenv("MAX_EXTRACTION_PER_RUN", "50")}')
+        print(f'   • Max scoring: {os.getenv("MAX_SCORING_PER_RUN", "100")}')
         print()
 
         try:
@@ -122,35 +116,37 @@ jobs:
                 limite_scoring=int(os.getenv('MAX_SCORING_PER_RUN', '100'))
             )
 
-            if resultado['sucesso']:
+            if resultado.get('sucesso'):
                 print()
                 print('✅ PIPELINE CONCLUÍDO COM SUCESSO')
-                print(f'⏱️ Tempo total: {resultado[\"tempo_execucao\"]:.1f}s')
-                print(f'📊 Resultados:')
-                print(f'   📰 Notícias coletadas: {resultado[\"coleta\"][\"total_coletadas\"]}')
-                print(f'   🆕 Notícias novas: {resultado[\"coleta\"][\"total_novas\"]}')
-                print(f'   📄 Extrações processadas: {resultado[\"extracao\"][\"processadas\"]}')
-                print(f'   🎯 Scoring processado: {resultado[\"scoring\"][\"processadas\"]}')
+                print(f'⏱️ Tempo total: {resultado.get("tempo_execucao", 0):.1f}s')
+                print('📊 Resultados:')
+                coleta = resultado.get('coleta', {})
+                extracao = resultado.get('extracao', {})
+                scoring = resultado.get('scoring', {})
+                print(f"   📰 Notícias coletadas: {coleta.get('total_coletadas', 0)}")
+                print(f"   🆕 Notícias novas: {coleta.get('total_novas', 0)}")
+                print(f"   📄 Extrações processadas: {extracao.get('processadas', 0)}")
+                print(f"   🎯 Scoring processado: {scoring.get('processadas', 0)}")
 
                 # Define saídas para próximos steps via GITHUB_OUTPUT
                 if 'GITHUB_OUTPUT' in os.environ:
                     with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
                         print('success=true', file=f)
-                        print(f'new_news={resultado[\"coleta\"][\"total_novas\"]}', file=f)
-                        print(f'execution_time={resultado[\"tempo_execucao\"]:.1f}', file=f)
-
+                        print(f"new_news={coleta.get('total_novas', 0)}", file=f)
+                        print(f"execution_time={resultado.get('tempo_execucao', 0):.1f}", file=f)
             else:
                 print('❌ PIPELINE FALHOU')
-                print(f'⚠️ Erro: {resultado.get(\"erro\", \"Erro desconhecido\")}')
-                sys.exit(1)
-
+                print(f"⚠️ Erro: {resultado.get('erro', 'Erro desconhecido')}")
+                raise SystemExit(1)
+                
         except Exception as e:
-            print(f'💥 ERRO CRÍTICO: {str(e)}')
+            print(f'💥 ERRO CRÍTICO: {e}')
             import traceback
             traceback.print_exc()
-            sys.exit(1)
-        "
-        
+            raise SystemExit(1)
+        PY
+          
     - name: Save database cache
       if: ${{ always() && hashFiles('data/clipping_faciap.db') != '' }}
       uses: actions/cache/save@v4
