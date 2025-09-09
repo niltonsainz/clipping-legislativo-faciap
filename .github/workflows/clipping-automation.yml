@@ -63,6 +63,7 @@ jobs:
           clipping-db-
           
     - name: Execute clipping pipeline
+      id: execute
       env:
         MAX_PAGES_PER_SOURCE: ${{ github.event.inputs.max_pages || '3' }}
         MAX_EXTRACTION_PER_RUN: ${{ github.event.inputs.max_extraction || '50' }}
@@ -124,9 +125,11 @@ jobs:
                 print(f'   🎯 Scoring processado: {resultado[\"scoring\"][\"processadas\"]}')
                 
                 # Define saída para próximos steps
-                print(f'::set-output name=success::true')
-                print(f'::set-output name=new_news::{resultado[\"coleta\"][\"total_novas\"]}')
-                print(f'::set-output name=execution_time::{resultado[\"tempo_execucao\"]:.1f}')
+                if 'GITHUB_OUTPUT' in os.environ:
+                    with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                        f.write(f'success=true\\n')
+                        f.write(f'new_news={resultado[\"coleta\"][\"total_novas\"]}\\n')
+                        f.write(f'execution_time={resultado[\"tempo_execucao\"]:.1f}\\n')
                 
             else:
                 print('❌ PIPELINE FALHOU')
