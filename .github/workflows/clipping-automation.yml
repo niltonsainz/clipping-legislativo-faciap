@@ -4,7 +4,7 @@ on:
   schedule:
     # Segunda a Sexta às 12h (15h UTC) e 20h (23h UTC) - Horário de Brasília
     - cron: '0 15,23 * * 1-5'  # 12h e 20h no horário de Brasília, apenas dias úteis
-  workflow_dispatch:  # Permite execução manual
+  workflow_dispatch:
     inputs:
       max_pages:
         description: 'Máximo de páginas por fonte'
@@ -29,6 +29,14 @@ on:
 
 env:
   TZ: America/Sao_Paulo
+
+# Recomendações de segurança e evitar corridas
+permissions:
+  contents: read
+
+concurrency:
+  group: clipping-automation-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   clipping-automation:
@@ -63,6 +71,7 @@ jobs:
           clipping-db-
           
     - name: Execute clipping pipeline
+      id: execute
       env:
         MAX_PAGES_PER_SOURCE: ${{ github.event.inputs.max_pages || '3' }}
         MAX_EXTRACTION_PER_RUN: ${{ github.event.inputs.max_extraction || '50' }}
@@ -75,26 +84,26 @@ jobs:
         import sys
         import os
         from pathlib import Path
-        
+
         # Adiciona o diretório scr ao path
         sys.path.insert(0, str(Path.cwd() / 'scr'))
-        
+
         from pipeline import ClippingPipeline
         from datetime import datetime
         import pytz
-        
+
         # Configuração de timezone
         tz_brasil = pytz.timezone('America/Sao_Paulo')
         agora = datetime.now(tz_brasil)
-        
+
         # Verifica se deve executar
         force_execution = os.getenv('FORCE_EXECUTION', 'false').lower() == 'true'
         is_weekday = agora.weekday() < 5  # 0=Monday, 6=Sunday
-        
+
         if not force_execution and not is_weekday:
             print(f'⏭️ Pulando execução - {agora.strftime(\"%A\")} não é dia útil')
             sys.exit(0)
-        
+
         print('🚀 INICIANDO PIPELINE AUTOMATIZADO')
         print('=' * 50)
         print(f'📅 Data/Hora: {agora.strftime(\"%A, %d/%m/%Y às %H:%M\")}')
@@ -104,7 +113,7 @@ jobs:
         print(f'   • Max extrações: {os.getenv(\"MAX_EXTRACTION_PER_RUN\", \"50\")}')
         print(f'   • Max scoring: {os.getenv(\"MAX_SCORING_PER_RUN\", \"100\")}')
         print()
-        
+
         try:
             pipeline = ClippingPipeline()
             resultado = pipeline.executar_completo(
@@ -112,7 +121,7 @@ jobs:
                 limite_extracao=int(os.getenv('MAX_EXTRACTION_PER_RUN', '50')),
                 limite_scoring=int(os.getenv('MAX_SCORING_PER_RUN', '100'))
             )
-            
+
             if resultado['sucesso']:
                 print()
                 print('✅ PIPELINE CONCLUÍDO COM SUCESSO')
@@ -122,17 +131,19 @@ jobs:
                 print(f'   🆕 Notícias novas: {resultado[\"coleta\"][\"total_novas\"]}')
                 print(f'   📄 Extrações processadas: {resultado[\"extracao\"][\"processadas\"]}')
                 print(f'   🎯 Scoring processado: {resultado[\"scoring\"][\"processadas\"]}')
-                
-                # Define saída para próximos steps
-                print(f'::set-output name=success::true')
-                print(f'::set-output name=new_news::{resultado[\"coleta\"][\"total_novas\"]}')
-                print(f'::set-output name=execution_time::{resultado[\"tempo_execucao\"]:.1f}')
-                
+
+                # Define saídas para próximos steps via GITHUB_OUTPUT
+                if 'GITHUB_OUTPUT' in os.environ:
+                    with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as f:
+                        print('success=true', file=f)
+                        print(f'new_news={resultado[\"coleta\"][\"total_novas\"]}', file=f)
+                        print(f'execution_time={resultado[\"tempo_execucao\"]:.1f}', file=f)
+
             else:
                 print('❌ PIPELINE FALHOU')
                 print(f'⚠️ Erro: {resultado.get(\"erro\", \"Erro desconhecido\")}')
                 sys.exit(1)
-                
+
         except Exception as e:
             print(f'💥 ERRO CRÍTICO: {str(e)}')
             import traceback
@@ -141,14 +152,14 @@ jobs:
         "
         
     - name: Save database cache
-      if: always()
+      if: ${{ always() && hashFiles('data/clipping_faciap.db') != '' }}
       uses: actions/cache/save@v4
       with:
         path: data/clipping_faciap.db
         key: clipping-db-${{ github.sha }}
         
     - name: Upload database artifact
-      if: always()
+      if: ${{ always() && hashFiles('data/clipping_faciap.db') != '' }}
       uses: actions/upload-artifact@v4
       with:
         name: clipping-database-${{ github.run_number }}
@@ -161,6 +172,7 @@ jobs:
       with:
         name: automation-logs-${{ github.run_number }}
         path: logs/
+        if-no-files-found: ignore
         retention-days: 7
         
     - name: Create execution summary
@@ -184,7 +196,6 @@ jobs:
         echo "- [Dashboard Streamlit](https://clipping-legislativo-faciap.streamlit.app)" >> $GITHUB_STEP_SUMMARY
         echo "- [Repositório](https://github.com/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
         
-        # Debug info se falhou
         if [ "${{ job.status }}" = "failure" ]; then
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### ⚠️ Informações de Debug" >> $GITHUB_STEP_SUMMARY
