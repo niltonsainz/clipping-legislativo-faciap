@@ -12,7 +12,7 @@ class SenadoScraper(BaseScraper):
     
     def __init__(self):
         super().__init__(
-            source_name='senado_federal',
+            source_name='senado',
             base_url='https://www12.senado.leg.br',
             news_url='https://www12.senado.leg.br/noticias/ultimas'
         )
@@ -167,3 +167,4 @@ class SenadoScraper(BaseScraper):
                 continue
         
         return news_items
+
