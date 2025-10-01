@@ -140,11 +140,11 @@ class WeekdayScheduler:
         self.logger.info("   📆 Dias: Segunda a Sexta-feira")
         
         # Agenda para 12:00 (meio-dia)
-        schedule.every().monday.at("12:00").do(self.execute_if_business_day)
-        schedule.every().tuesday.at("12:00").do(self.execute_if_business_day)
-        schedule.every().wednesday.at("12:00").do(self.execute_if_business_day)
-        schedule.every().thursday.at("12:00").do(self.execute_if_business_day)
-        schedule.every().friday.at("12:00").do(self.execute_if_business_day)
+        schedule.every().monday.at("14:00").do(self.execute_if_business_day)
+        schedule.every().tuesday.at("14:00").do(self.execute_if_business_day)
+        schedule.every().wednesday.at("14:00").do(self.execute_if_business_day)
+        schedule.every().thursday.at("14:00").do(self.execute_if_business_day)
+        schedule.every().friday.at("14:00").do(self.execute_if_business_day)
         
         # Agenda para 20:00 (noite)
         schedule.every().monday.at("20:00").do(self.execute_if_business_day)
@@ -178,4 +178,5 @@ if __name__ == "__main__":
         scheduler.logger.info("🛑 Agendador interrompido pelo usuário")
         scheduler.running = False
         scheduler.remove_lock()
+
 
