@@ -29,4 +29,5 @@ def get_scraper(source_name: str):
 
 def get_all_scrapers():
     """Retorna todas as instâncias de scrapers disponíveis"""
+
     return {name: scraper_class() for name, scraper_class in AVAILABLE_SCRAPERS.items()}
