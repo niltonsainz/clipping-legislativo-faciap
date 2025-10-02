@@ -1,5 +1,5 @@
 """
-Scraper especializado para Senado Federal - Versão Melhorada com Captura de Datas
+Scraper especializado para Senado Federal - Captura correta de datas
 """
 import re
 from datetime import datetime
@@ -8,7 +8,7 @@ from typing import List, Dict, Optional
 from .base import BaseScraper
 
 class SenadoScraper(BaseScraper):
-    """Scraper para Senado Federal com extração aprimorada de datas"""
+    """Scraper para Senado Federal com extração precisa de datas"""
     
     def __init__(self):
         super().__init__(
@@ -19,7 +19,7 @@ class SenadoScraper(BaseScraper):
     
     def scrape(self, max_pages: int = 3) -> List[Dict]:
         """Coleta notícias do Senado Federal"""
-        print(f"🔍 Coletando: {self.source_name}")
+        print(f"Coletando: {self.source_name}")
         
         all_news = []
         
@@ -30,7 +30,7 @@ class SenadoScraper(BaseScraper):
                 else:
                     url = f'{self.news_url}/{page}'
                 
-                print(f"  📄 Página {page}")
+                print(f"  Página {page}")
                 self._random_delay()
                 
                 response = self._safe_request(url)
@@ -41,121 +41,115 @@ class SenadoScraper(BaseScraper):
                 page_news = self._extract_news_from_page(soup)
                 
                 all_news.extend(page_news)
-                print(f"     ✅ {len(page_news)} notícias coletadas")
+                print(f"     {len(page_news)} notícias")
                 
                 if len(page_news) == 0 and page > 1:
                     break
                     
             except Exception as e:
-                print(f"     ❌ Erro página {page}: {str(e)[:50]}...")
+                print(f"     Erro página {page}: {str(e)[:30]}...")
                 continue
         
-        print(f"  🎯 Total Senado: {len(all_news)} notícias")
+        print(f"  Total Senado: {len(all_news)} notícias")
         return all_news
     
-    def _extract_datetime_from_text(self, text: str) -> Optional[datetime]:
+    def _parse_datetime_senado(self, date_str: str) -> Optional[datetime]:
         """
-        Extrai data/hora de texto no formato usado pelo Senado
-        Formatos suportados: DD/MM/YYYY HHhMM, DD/MM/YYYY HH:MM, DD/MM/YYYY
+        Converte string de data do Senado para datetime
+        Formato: DD/MM/YYYY HHhMM (ex: 02/10/2025 17h07)
         """
-        if not text:
+        if not date_str:
             return None
-            
-        # Formato principal: 02/10/2025 15h24
-        pattern1 = r'(\d{1,2})/(\d{1,2})/(\d{4})\s+(\d{1,2})h(\d{1,2})'
-        match = re.search(pattern1, text)
+        
+        # Remove espaços extras
+        date_str = date_str.strip()
+        
+        # Formato principal: DD/MM/YYYY HHhMM
+        pattern = r'^(\d{1,2})/(\d{1,2})/(\d{4})\s+(\d{1,2})h(\d{1,2})$'
+        match = re.match(pattern, date_str)
+        
         if match:
             try:
                 day, month, year, hour, minute = match.groups()
-                return datetime(int(year), int(month), int(day), int(hour), int(minute))
-            except ValueError:
-                pass
-        
-        # Formato alternativo: 02/10/2025 15:24
-        pattern2 = r'(\d{1,2})/(\d{1,2})/(\d{4})\s+(\d{1,2}):(\d{1,2})'
-        match = re.search(pattern2, text)
-        if match:
-            try:
-                day, month, year, hour, minute = match.groups()
-                return datetime(int(year), int(month), int(day), int(hour), int(minute))
-            except ValueError:
-                pass
-        
-        # Formato só data: 02/10/2025
-        pattern3 = r'(\d{1,2})/(\d{1,2})/(\d{4})'
-        match = re.search(pattern3, text)
-        if match:
-            try:
-                day, month, year = match.groups()
-                return datetime(int(year), int(month), int(day))
-            except ValueError:
-                pass
+                return datetime(
+                    int(year), 
+                    int(month), 
+                    int(day), 
+                    int(hour), 
+                    int(minute)
+                )
+            except ValueError as e:
+                print(f"     Erro ao converter data '{date_str}': {e}")
+                return None
         
         return None
     
-    def _find_datetime_in_context(self, element) -> Optional[datetime]:
+    def _find_date_span_near_link(self, link_element) -> Optional[str]:
         """
-        Procura data/hora no contexto do elemento (elementos pais, irmãos, etc.)
+        Procura pelo span com a data próximo ao link
+        O span tem classe 'text-muted' e contém a data no formato DD/MM/YYYY HHhMM
         """
-        # Lista de elementos para verificar
-        elements_to_check = []
+        # Estratégia 1: Procura no elemento pai direto
+        parent = link_element.parent
+        if parent:
+            # Procura spans com classe text-muted no mesmo container
+            date_spans = parent.find_all('span', class_=re.compile(r'text-muted'))
+            for span in date_spans:
+                text = span.get_text().strip()
+                # Verifica se tem formato de data
+                if re.match(r'\d{2}/\d{2}/\d{4}\s+\d{1,2}h\d{2}', text):
+                    return text
         
-        # 1. Elemento atual
-        elements_to_check.append(element)
+        # Estratégia 2: Procura nos elementos anteriores (siblings)
+        for sibling in link_element.find_previous_siblings():
+            if sibling.name == 'span':
+                text = sibling.get_text().strip()
+                if re.match(r'\d{2}/\d{2}/\d{4}\s+\d{1,2}h\d{2}', text):
+                    return text
+            # Procura dentro do sibling
+            date_spans = sibling.find_all('span', class_=re.compile(r'text-muted'))
+            for span in date_spans:
+                text = span.get_text().strip()
+                if re.match(r'\d{2}/\d{2}/\d{4}\s+\d{1,2}h\d{2}', text):
+                    return text
         
-        # 2. Elemento pai direto
-        if element.parent:
-            elements_to_check.append(element.parent)
-        
-        # 3. Irmãos anteriores e posteriores
-        if element.parent:
-            siblings = element.parent.find_all(['div', 'span', 'p', 'time'])
-            elements_to_check.extend(siblings)
-        
-        # 4. Elementos pais até 3 níveis acima
-        current = element.parent
-        for _ in range(3):
-            if current and current.parent:
-                current = current.parent
-                elements_to_check.append(current)
-            else:
-                break
-        
-        # Procura data/hora em todos os elementos
-        for elem in elements_to_check:
-            if elem:
-                text = elem.get_text().strip()
-                datetime_found = self._extract_datetime_from_text(text)
-                if datetime_found:
-                    return datetime_found
+        # Estratégia 3: Sobe até o <li> e procura lá
+        li_parent = link_element.find_parent('li')
+        if li_parent:
+            date_spans = li_parent.find_all('span', class_=re.compile(r'text-muted'))
+            for span in date_spans:
+                text = span.get_text().strip()
+                if re.match(r'\d{2}/\d{2}/\d{4}\s+\d{1,2}h\d{2}', text):
+                    return text
         
         return None
     
     def _clean_title(self, title: str) -> str:
-        """Remove datas e timestamps do título"""
+        """Remove elementos indesejados do título"""
         if not title:
             return ""
-            
+        
+        # Remove apenas ícones e espaços extras
         patterns = [
-            r'^\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}h\d{1,2}\s*',
-            r'^\d{1,2}/\d{1,2}/\d{4}\s+\d{1,2}:\d{1,2}\s*',
-            r'^\d{1,2}/\d{1,2}/\d{4}\s*',
-            r'-\s*$',
-            r'^\s*[\|•]\s*',
+            r'^\s*[\|•]\s*',  # Ícones no início
+            r'\s+',           # Múltiplos espaços
         ]
         
         cleaned_title = title
         for pattern in patterns:
-            cleaned_title = re.sub(pattern, '', cleaned_title)
+            if pattern == r'\s+':
+                cleaned_title = re.sub(pattern, ' ', cleaned_title)
+            else:
+                cleaned_title = re.sub(pattern, '', cleaned_title)
         
-        return ' '.join(cleaned_title.strip().split())
+        return cleaned_title.strip()
     
     def _extract_date_from_url(self, href: str) -> Optional[datetime]:
-        """Extrai data da URL como fallback"""
+        """Extrai data da URL como último recurso"""
         if not href:
             return None
             
-        date_match = re.search(r'/noticias/materias/(\d{4})/(\d{2})/(\d{2})/', href)
+        date_match = re.search(r'/(\d{4})/(\d{2})/(\d{2})/', href)
         if date_match:
             try:
                 year, month, day = date_match.groups()
@@ -165,44 +159,32 @@ class SenadoScraper(BaseScraper):
         return None
     
     def _extract_news_from_page(self, soup: BeautifulSoup) -> List[Dict]:
-        """Extrai notícias de uma página específica com busca aprimorada de datas"""
+        """Extrai notícias de uma página específica"""
         news_items = []
         
-        # Múltiplos seletores para diferentes estruturas da página
-        selectors = [
-            'a[href*="/noticias/materias/"]',  # Links diretos para notícias
-            '.listagem-noticias a',            # Links em listagem
-            '.ultimas-noticias a',             # Links em últimas notícias
-            'article a',                       # Links em artigos
-            '.conteudo a'                      # Links em conteúdo geral
-        ]
+        # Encontra todos os links de notícias
+        links = soup.find_all('a', href=re.compile(r'/noticias/materias/'))
         
-        found_links = []
-        for selector in selectors:
-            links = soup.select(selector)
-            found_links.extend(links)
-        
-        # Se não encontrou com seletores específicos, busca geral
-        if not found_links:
-            found_links = soup.find_all('a', href=True)
-        
-        print(f"    🔎 Encontrados {len(found_links)} links para análise")
-        
-        for link in found_links:
+        for link in links:
             try:
                 href = link.get('href', '')
                 
-                # Filtro para URLs de notícias válidas
-                if not ('/noticias/materias/' in href and re.search(r'/202[0-9]/', href)):
+                # Filtro para URLs válidas
+                if not re.search(r'/noticias/materias/\d{4}/\d{2}/\d{2}/', href):
                     continue
                 
+                # Extrai título
                 titulo_raw = link.get_text().strip()
                 
                 if not titulo_raw or len(titulo_raw) < 15:
                     continue
                 
-                # Busca data/hora no contexto do elemento
-                data_pub = self._find_datetime_in_context(link)
+                # Procura a data no span próximo ao link
+                date_str = self._find_date_span_near_link(link)
+                data_pub = None
+                
+                if date_str:
+                    data_pub = self._parse_datetime_senado(date_str)
                 
                 # Se não encontrou, tenta extrair da URL
                 if not data_pub:
@@ -214,8 +196,8 @@ class SenadoScraper(BaseScraper):
                 if len(titulo) < 15:
                     continue
                 
-                # Skip títulos irrelevantes
-                skip_titles = ['últimas notícias', 'senado notícias', 'veja mais', 'leia mais']
+                # Pula títulos irrelevantes
+                skip_titles = ['últimas notícias', 'veja mais', 'leia mais', 'todas as notícias']
                 if any(skip in titulo.lower() for skip in skip_titles):
                     continue
                 
@@ -225,13 +207,6 @@ class SenadoScraper(BaseScraper):
                 # Evita duplicatas
                 if any(news['link'] == full_link for news in news_items):
                     continue
-                
-                # Log de debug
-                if data_pub:
-                    data_str = data_pub.strftime("%d/%m/%Y %H:%M")
-                    print(f"    📅 {data_str} - {titulo[:60]}...")
-                else:
-                    print(f"    ⚠️  SEM DATA - {titulo[:60]}...")
                 
                 news_item = {
                     'titulo': titulo,
@@ -244,8 +219,8 @@ class SenadoScraper(BaseScraper):
                 
                 news_items.append(news_item)
                 
-                # Limita quantidade por página
-                if len(news_items) >= 20:
+                # Limita por página
+                if len(news_items) >= 15:
                     break
                     
             except Exception as e:
