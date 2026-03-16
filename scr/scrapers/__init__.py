@@ -5,19 +5,22 @@ from .base import BaseScraper
 from .camara import CamaraScraper
 from .senado import SenadoScraper
 from .agencia_gov import AgenciaGovScraper
+from .parana_aen import ParanaAENScraper
 
 __all__ = [
     'BaseScraper',
     'CamaraScraper', 
     'SenadoScraper',
-    'AgenciaGovScraper'
+    'AgenciaGovScraper',
+    'ParanaAENScraper'
 ]
 
 # Mapeamento de scrapers disponíveis
 AVAILABLE_SCRAPERS = {
     'camara': CamaraScraper,
     'senado': SenadoScraper,
-    'agencia_gov': AgenciaGovScraper
+    'agencia_gov': AgenciaGovScraper,
+    'parana_aen': ParanaAENScraper
 }
 
 def get_scraper(source_name: str):
