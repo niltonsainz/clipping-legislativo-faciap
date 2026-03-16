@@ -1,5 +1,6 @@
 """
 Scraper especializado para Agência de Notícias do Paraná (AEN)
+Versão 2.0: Extrai data completa da página de detalhe de cada notícia
 """
 import re
 from datetime import datetime, timedelta
@@ -8,7 +9,7 @@ from typing import List, Dict, Optional
 from .base import BaseScraper
 
 class ParanaAENScraper(BaseScraper):
-    """Scraper para Agência de Notícias do Paraná"""
+    """Scraper para Agência de Notícias do Paraná com extração de data completa"""
     
     def __init__(self):
         super().__init__(
@@ -16,7 +17,6 @@ class ParanaAENScraper(BaseScraper):
             base_url='https://www.parana.pr.gov.br',
             news_url='https://www.parana.pr.gov.br/aen/noticias'
         )
-        self.current_date = None  # Rastreia data atual para notícias sem data completa
     
     def scrape(self, max_pages: int = 3) -> List[Dict]:
         """Coleta notícias da Agência de Notícias do Paraná"""
@@ -30,7 +30,6 @@ class ParanaAENScraper(BaseScraper):
                 if page == 1:
                     url = self.news_url
                 else:
-                    # Tenta diferentes parâmetros de paginação
                     url = f'{self.news_url}?page={page}'
                 
                 print(f"  Página {page}")
@@ -95,9 +94,6 @@ class ParanaAENScraper(BaseScraper):
                 if any(news['link'] == full_link for news in news_items):
                     continue
                 
-                # Extrai data e hora
-                data_pub = self._extract_date_from_article(article)
-                
                 # Extrai categoria (h4)
                 categoria_elem = content_div.find('h4')
                 categoria = categoria_elem.get_text().strip() if categoria_elem else ''
@@ -116,6 +112,9 @@ class ParanaAENScraper(BaseScraper):
                 if len(resumo) > 500:
                     resumo = resumo[:497] + '...'
                 
+                # **NOVO**: Extrai data completa da página de detalhe
+                data_pub = self._extract_date_from_detail_page(full_link)
+                
                 news_item = {
                     'titulo': titulo,
                     'link': full_link,
@@ -133,55 +132,64 @@ class ParanaAENScraper(BaseScraper):
         
         return news_items
     
-    def _extract_date_from_article(self, article) -> Optional[datetime]:
-        """Extrai data de um artigo da AEN"""
+    def _extract_date_from_detail_page(self, news_link: str) -> Optional[datetime]:
+        """
+        Extrai data completa da página de detalhe da notícia.
+        Procura por: <span id="story_date">16/03/2026 - 16:30</span>
+        """
         try:
-            # Tenta extrair da tag <time>
-            time_elem = article.find('time')
-            if time_elem:
-                time_text = time_elem.get_text().strip()
-                
-                # Tenta extrair hora
-                hora_match = re.search(r'(\d{2}):(\d{2})', time_text)
-                hora = None
-                if hora_match:
-                    hora = f"{hora_match.group(1)}:{hora_match.group(2)}"
-                
-                # Tenta extrair data do atributo datetime
-                datetime_attr = time_elem.get('datetime')
-                if datetime_attr:
-                    try:
-                        # Formato ISO: YYYY-MM-DDTHH:MM:SS
-                        return datetime.fromisoformat(datetime_attr.replace('Z', '+00:00'))
-                    except:
-                        pass
-                
-                # Se tem hora mas não tem data, usa data de hoje
-                if hora:
-                    try:
-                        hora_obj = datetime.strptime(hora, '%H:%M')
-                        today = datetime.now()
-                        return today.replace(hour=hora_obj.hour, minute=hora_obj.minute, second=0, microsecond=0)
-                    except:
-                        pass
+            self._random_delay(min_delay=0.5, max_delay=1.5)  # Delay menor entre requisições
             
-            # Alternativa: procura por data formatada próxima ao artigo
-            # (pode estar em um elemento anterior com classe 'item-date')
-            parent = article.parent
-            if parent:
-                date_elem = parent.find_previous('article', class_='item-date')
-                if date_elem:
-                    date_text = date_elem.get_text().strip()
-                    return self._parse_date_text(date_text)
+            response = self._safe_request(news_link)
+            if not response:
+                return None
+            
+            soup = BeautifulSoup(response.content, 'html.parser')
+            
+            # Procura pelo elemento com id="story_date"
+            story_date = soup.find('span', id='story_date')
+            if story_date:
+                date_text = story_date.get_text().strip()
+                # Formato esperado: "16/03/2026 - 16:30"
+                return self._parse_date_text(date_text)
+            
+            # Fallback: procura por data em formato DD/MM/YYYY - HH:MM em qualquer lugar
+            date_pattern = r'(\d{2})/(\d{2})/(\d{4})\s*-\s*(\d{2}):(\d{2})'
+            match = re.search(date_pattern, soup.get_text())
+            if match:
+                day = int(match.group(1))
+                month = int(match.group(2))
+                year = int(match.group(3))
+                hour = int(match.group(4))
+                minute = int(match.group(5))
+                return datetime(year, month, day, hour, minute)
             
         except Exception as e:
-            print(f"     Erro ao extrair data: {str(e)[:30]}...")
+            print(f"     Erro ao extrair data da página de detalhe: {str(e)[:30]}...")
         
         return None
     
     def _parse_date_text(self, text: str) -> Optional[datetime]:
-        """Parseia texto de data em português"""
+        """
+        Parseia texto de data em português.
+        Formatos suportados:
+        - "16/03/2026 - 16:30"
+        - "16/03/2026"
+        - "9 de Março de 2026"
+        - "Ontem", "Anteontem", "Hoje"
+        """
         try:
+            # Padrão: "16/03/2026 - 16:30" ou "16/03/2026"
+            pattern_br = r'(\d{2})/(\d{2})/(\d{4})(?:\s*-\s*(\d{2}):(\d{2}))?'
+            match = re.search(pattern_br, text)
+            if match:
+                day = int(match.group(1))
+                month = int(match.group(2))
+                year = int(match.group(3))
+                hour = int(match.group(4)) if match.group(4) else 0
+                minute = int(match.group(5)) if match.group(5) else 0
+                return datetime(year, month, day, hour, minute)
+            
             # Meses em português
             months_pt = {
                 'janeiro': 1, 'fevereiro': 2, 'março': 3, 'abril': 4,
@@ -190,8 +198,8 @@ class ParanaAENScraper(BaseScraper):
             }
             
             # Padrão: "9 de Março de 2026"
-            pattern = r'(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})'
-            match = re.search(pattern, text)
+            pattern_pt = r'(\d{1,2})\s+de\s+(\w+)\s+de\s+(\d{4})'
+            match = re.search(pattern_pt, text)
             if match:
                 day = int(match.group(1))
                 month_name = match.group(2).lower()
@@ -201,15 +209,16 @@ class ParanaAENScraper(BaseScraper):
                     month = months_pt[month_name]
                     return datetime(year, month, day)
             
-            # Padrão: "Ontem", "Anteontem"
-            if 'ontem' in text.lower():
+            # Padrão: "Ontem", "Anteontem", "Hoje"
+            text_lower = text.lower()
+            if 'ontem' in text_lower:
                 return datetime.now() - timedelta(days=1)
-            elif 'anteontem' in text.lower():
+            elif 'anteontem' in text_lower:
                 return datetime.now() - timedelta(days=2)
-            elif 'hoje' in text.lower():
+            elif 'hoje' in text_lower:
                 return datetime.now()
             
         except Exception as e:
-            print(f"     Erro ao parsear data em português: {str(e)[:30]}...")
+            print(f"     Erro ao parsear data: {str(e)[:30]}...")
         
         return None
