@@ -623,6 +623,7 @@ if total_paginas > 1:
         if st.button("⏮️ Primeira", key="pg_first",
                      disabled=(st.session_state.pagina_atual == 1)):
             st.session_state.pagina_atual = 1
+            st.session_state.scroll_to_top = True
             st.rerun()
 
     # Anterior
@@ -630,6 +631,7 @@ if total_paginas > 1:
         if st.button("⬅️ Anterior", key="pg_prev",
                      disabled=(st.session_state.pagina_atual <= 1)):
             st.session_state.pagina_atual -= 1
+            st.session_state.scroll_to_top = True
             st.rerun()
 
     # Seletor de página
@@ -643,6 +645,7 @@ if total_paginas > 1:
         )
         if nova_pagina != st.session_state.pagina_atual:
             st.session_state.pagina_atual = nova_pagina
+            st.session_state.scroll_to_top = True
             st.rerun()
 
     # Próxima
@@ -650,6 +653,7 @@ if total_paginas > 1:
         if st.button("Próximo ➡️", key="pg_next",
                      disabled=(st.session_state.pagina_atual >= total_paginas)):
             st.session_state.pagina_atual += 1
+            st.session_state.scroll_to_top = True
             st.rerun()
 
     # Última
@@ -657,6 +661,7 @@ if total_paginas > 1:
         if st.button("⏭️ Última", key="pg_last",
                      disabled=(st.session_state.pagina_atual == total_paginas)):
             st.session_state.pagina_atual = total_paginas
+            st.session_state.scroll_to_top = True
             st.rerun()
 
     # Info da paginação
@@ -669,12 +674,26 @@ if total_paginas > 1:
     )
 
 # =========================
+# Scroll ao topo (JavaScript)
+# =========================
+if st.session_state.get("scroll_to_top", False):
+    st.markdown(
+        """
+        <script>
+            window.scrollTo(0, 0);
+        </script>
+        """,
+        unsafe_allow_html=True
+    )
+    st.session_state.scroll_to_top = False
+
+# =========================
 # Footer
 # =========================
 st.markdown(
 f"""<div style="text-align: center; color: #7f8c8d; font-size: 0.85rem; margin-top: 2rem;">
   Sistema de Clipping Legislativo FACIAP | Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M')} <br>
-  Desenvolvido por <strong>Nilton Sainz</strong> | Versão Corrigida - Problema do &lt;/div&gt; RESOLVIDO
+  Desenvolvido por <strong>Nilton Sainz</strong> | Versão Corrigida - Problemas Resolvidos
 </div>""",
     unsafe_allow_html=True
 )
