@@ -493,6 +493,40 @@ itens_por_pagina = st.sidebar.selectbox("Itens por página", itens_opts, index=d
 # Botões
 st.sidebar.markdown("---")
 st.sidebar.subheader("⚙️ Controles do Sistema")
+
+# Botão de Raspagem Manual (NOVO)
+if st.sidebar.button("🚀 Iniciar Raspagem Manual", key="btn_scrape", use_container_width=True, type="primary"):
+    with st.spinner("Iniciando coleta de notícias em tempo real... Isso pode levar alguns minutos."):
+        try:
+            from scr.pipeline import executar_pipeline_completo
+            
+            # Executa o pipeline com limites menores para não demorar muito na interface
+            resultado = executar_pipeline_completo(
+                max_pages_por_fonte=2,  # Coleta menos páginas para ser mais rápido
+                limite_extracao=20,
+                limite_scoring=20
+            )
+            
+            if resultado.get('sucesso'):
+                st.sidebar.success(f"""
+                ✅ Raspagem concluída!
+                - Novas notícias: {resultado['coleta']['total_novas']}
+                - Extraídas: {resultado['extracao']['sucessos']}
+                - Relevantes: {resultado['scoring']['com_termos']}
+                - Tempo: {resultado['tempo_execucao']:.1f}s
+                """)
+            else:
+                st.sidebar.error(f"⚠️ Erro na raspagem: {resultado.get('erro')}")
+                
+            # Limpa o cache para carregar os novos dados
+            st.cache_data.clear()
+            # Pequeno delay para o usuário ler a mensagem antes de recarregar
+            import time
+            time.sleep(3)
+            st.rerun()
+        except Exception as e:
+            st.sidebar.error(f"Erro ao executar raspagem: {e}")
+
 col_btn1, col_btn2 = st.sidebar.columns(2)
 with col_btn1:
     if st.button("🔄 Atualizar", key="btn_refresh"):
@@ -525,22 +559,31 @@ Sistema totalmente funcional!
 # =========================
 # Filtros e ordenação (aplicação)
 # =========================
-# Se qualquer filtro/ordenador/itens mudar, resetar para a primeira página
-changed = False
-for key, current in {
-    "last_fonte": filtro_fonte,
-    "last_relevancia": filtro_relevancia,
-    "last_periodo": filtro_periodo,
-    "last_ordenacao": ordenacao,
-    "last_itens": itens_por_pagina,
-}.items():
-    if st.session_state.get(key) != current:
-        st.session_state[key] = current
-        changed = True
+# Gerenciamento de página e filtros
+# =========================
 
+# Inicializa página_atual se não existir
 if "pagina_atual" not in st.session_state:
     st.session_state.pagina_atual = 1
-elif changed:
+
+# Detecta mudanças nos filtros
+filtro_state = {
+    "fonte": filtro_fonte,
+    "relevancia": filtro_relevancia,
+    "periodo": filtro_periodo,
+    "ordenacao": ordenacao,
+    "itens": itens_por_pagina,
+}
+
+# Compara com estado anterior
+filtros_mudaram = False
+for key, valor in filtro_state.items():
+    if st.session_state.get(f"last_{key}") != valor:
+        st.session_state[f"last_{key}"] = valor
+        filtros_mudaram = True
+
+# Se filtros mudaram, volta para página 1
+if filtros_mudaram:
     st.session_state.pagina_atual = 1
 
 # Copia e filtra
