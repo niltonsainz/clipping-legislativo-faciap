@@ -1,6 +1,6 @@
 # 📰 Clipping Legislativo FACIAP
 
-Sistema de monitoramento de notícias legislativas desenvolvido para a **FACIAP** (Federação das Associações Comerciais e Industriais do Paraná).
+Sistema de monitoramento de notícias legislativas desenvolvido para a **FACIAP** (Federação das Associações Comerciais e Empresariais do Estado do Paraná).
 
 ## 🎯 Sobre o Projeto
 
